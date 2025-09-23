@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<title>Video Review Playlist</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<style type="text/tailwindcss">
+      body {
+        font-family: "Spline Sans", sans-serif;
+      }
+    </style>
+</head>
+<body class="bg-white text-black">
+<div class="flex h-screen w-full flex-col">
+<header class="flex items-center justify-between whitespace-nowrap border-b border-gray-200 px-6 py-4">
+<div class="flex items-center gap-8">
+<h1 class="text-xl font-bold">Video Review Playlist</h1>
+<nav class="flex items-center gap-6">
+<a class="relative text-sm font-bold text-black after:absolute after:bottom-[-4px] after:left-0 after:h-0.5 after:w-full after:bg-black after:content-['']" href="#">Reviews</a>
+<a class="text-sm font-medium text-gray-500 hover:text-black" href="#">Analytics</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<button>
+<img alt="User avatar" class="h-10 w-10 rounded-full" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAiKajiDtNMgaU32_95LAooZoEVoRWEjAFZzFLGMq4T8S1QorIoBTO0mpbV9J4LPhzKVaV07eSB59W9_AD3H3mKrWV4oA43YNmImItF8EMtpjyM5cuUpmxZYBvNzxpQD1OPXSEw1W0MviRFY-HPhwNLRsqEssekF5N7q5QQurnMuLoyg_Dci6UOmuUnc2WOLSUX4nmN2cJjNPSPr2XAx1-12PRYUUXhJowZACgshSyttgfs4FCQemFDzfCLjJ0JXIXFUehD2Ui0TA"/>
+</button>
+</div>
+</header>
+<main class="flex flex-1 overflow-hidden">
+<div class="flex w-1/3 flex-col border-r border-gray-200 bg-gray-50">
+<div class="flex-grow overflow-y-auto p-6 pb-0">
+<div class="mb-8">
+<h2 class="text-3xl font-bold">Video Reviews</h2>
+<p class="text-gray-500">Manage and review submitted videos.</p>
+</div>
+<h3 class="mb-4 text-lg font-semibold">Pending Reviews</h3>
+<div class="space-y-2">
+<div class="flex cursor-pointer items-center gap-4 rounded-md p-3 hover:bg-gray-100">
+<img alt="Product Demo Video Thumbnail" class="h-16 w-28 rounded-md object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAH4dS5wfywy7q1kZVTAw_zdJwN8KTk4xwtAgxlZBR9ZicdVHD7jAmkrIAiaXXzR1_-IpA4cCOzAhChp8Io8fSko1gRr5kGmkTnA6LCqgz7j9KElJuQVshTJ5e7n_OMQqV3U6tiSWsLOhGc-en4964OrpVJUHuP2ONTpMnERuxuz2IBk2u_cDTWVqf-puXqfGmTNGvfcaDukb1Gi2kU0GmCvoQduu8U3P3_ZCxSsZIIRSHflAf-2nM4ITRB5XywGH5YfEIz5pkXlA"/>
+<div class="flex-1">
+<p class="font-semibold">Product Demo Video</p>
+<p class="text-sm text-gray-500">02:30</p>
+</div>
+</div>
+<div class="flex cursor-pointer items-center gap-4 rounded-md bg-gray-100 p-3 ring-2 ring-black">
+<img alt="Marketing Campaign Video Thumbnail" class="h-16 w-28 rounded-md object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCBiWir56tXRm17OzLz3dbEXjnt4SAHs-ArH9ORWVOcG0HQuDgMoaV46upYY4veqj1F9jK-MORdfNT2zpQG9dC4ujh-dQX7glvUap7CXG4QxTtQsatRrde5zH1l6kj-W89yUGGmjrGtdX9f5kFzMYC3WbaLaYDmAK2phAWolEwnf6_qaNul_1vpb3JcaVvT1m3JjomsGmD_3m3feid-iHAOPg7SHagmTkWoxVhhiOQPbcYb-pnlmJTFwxxcpAc9IpZ_eEbYXA69ew"/>
+<div class="flex-1">
+<p class="font-semibold">Marketing Campaign Video</p>
+<p class="text-sm text-gray-500">03:12</p>
+</div>
+</div>
+<div class="flex cursor-pointer items-center gap-4 rounded-md p-3 hover:bg-gray-100">
+<img alt="Customer Testimonial Thumbnail" class="h-16 w-28 rounded-md object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDg8jp-ZtXxPfIHjLvDASy48pj5rZHZJ9N-7BUXUi6gRz-oJOxyzU8Wl5i1m_QL6ZGJtO4yfUnua6Lhb5UI6g_bkZwDW9ogpB2ciccGeCGayi9YXiQ1gNiTFshFhDrE6znVQ4iTKzcRSftpEvE94IQchY8AhrnGmDd1wafYs_Yka75zNi_4ctfQbeU2eEd_e1JPx7wWV1Rkv-b6bL6KPObVskW8b0YFZvF-nzpY5Y_2dPXGi5cvhdcZ0mpVIboThEhkPNN9IjPpPw"/>
+<div class="flex-1">
+<p class="font-semibold">Customer Testimonial</p>
+<p class="text-sm text-gray-500">01:45</p>
+</div>
+</div>
+</div>
+</div>
+<div class="mt-auto p-6">
+<nav class="flex items-center justify-between">
+<button class="flex h-8 w-8 items-center justify-center rounded-md border border-gray-300 text-gray-500 hover:bg-gray-100">
+<span class="material-symbols-outlined text-xl">chevron_left</span>
+</button>
+<div class="flex items-center gap-2">
+<button class="flex h-8 w-8 items-center justify-center rounded-md text-sm font-medium text-gray-500 hover:bg-gray-100">1</button>
+<button class="flex h-8 w-8 items-center justify-center rounded-md bg-black text-sm font-medium text-white">2</button>
+<button class="flex h-8 w-8 items-center justify-center rounded-md text-sm font-medium text-gray-500 hover:bg-gray-100">3</button>
+<span class="text-gray-500">...</span>
+<button class="flex h-8 w-8 items-center justify-center rounded-md text-sm font-medium text-gray-500 hover:bg-gray-100">8</button>
+</div>
+<button class="flex h-8 w-8 items-center justify-center rounded-md border border-gray-300 text-gray-500 hover:bg-gray-100">
+<span class="material-symbols-outlined text-xl">chevron_right</span>
+</button>
+</nav>
+</div>
+</div>
+<div class="flex flex-1 flex-col overflow-y-auto">
+<div class="flex-1 p-8">
+<div class="mb-6">
+<div class="relative mb-4 aspect-video w-full">
+<img alt="Video for review" class="h-full w-full rounded-lg object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD0yea71sIwnkwi-pcxxUYPjIOKaU6t_EyLdyIJACH61EaMYomuTKab7DdAdpoAAVCVbuT9ouwSkJPFb93M9iRmIykglscl_ZtpPFxKQHSm_KzNa9Tl1LwHnfZJtD6d_IEqjP83adcrjURBHkE_HlUIX9MCjIRU_1EoIH__b7xcYyiGa4KHjmRvIyhlGxMpf0oMZ1woIpi-9RBDDMw6i5UjaKVigQOQfc2BvhABr6yARGMVGirI2bbuzhOmGFIZYXI9-a4ISAv4vA"/>
+<div class="absolute inset-0 flex items-center justify-center rounded-lg bg-black/30">
+<button class="flex h-20 w-20 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-sm transition-colors hover:bg-white/30">
+<span class="material-symbols-outlined text-6xl">play_arrow</span>
+</button>
+</div>
+</div>
+<div class="flex items-center justify-between">
+<div>
+<h3 class="text-2xl font-bold">Marketing Campaign Video</h3>
+<p class="text-gray-500">Uploaded 3 hours ago</p>
+</div>
+<div class="flex items-center gap-3">
+<button class="flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-700">
+<span class="material-symbols-outlined">close</span>
+                    Reject
+                  </button>
+<button class="flex items-center gap-2 rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-green-700">
+<span class="material-symbols-outlined">check</span>
+                    Approve
+                  </button>
+</div>
+</div>
+</div>
+<div class="border-t border-gray-200 pt-6">
+<h4 class="mb-4 text-xl font-semibold">Comments</h4>
+<div class="space-y-6">
+</div>
+</div>
+</div>
+<div class="sticky bottom-0 p-6">
+<div class="flex items-start gap-4">
+<img alt="Your avatar" class="mt-1 h-10 w-10 shrink-0 rounded-full" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC-EfD49R6Ggx94pAW4znssOC9Q5NhQpos0HsU5dki5rEOpyjHQVlGDH0gUuLEnyHV1AaAAFPnFbH2FMI90rZTQYGYJe4bT-9kJkmpmCMyPyKqBYh-DO5UpNn0IR_d3AXkl7uJqSZzk2oydBSSeEVcAjC00049OXbKkDqBOWlLDM3wuNsvjSchaXYTdEzstw7EEsZ3BM5AsuGn1I7I21UVpHU3YecuHuUyESd28lRbD3t1fchRgPLkykscPuZn0owBJnJxPBdjATQ"/>
+<div class="flex-1">
+<textarea class="w-full resize-none rounded-md border-gray-300 bg-gray-100 text-sm placeholder-gray-500 focus:border-black focus:ring-black" placeholder="Add a comment..." rows="2"></textarea>
+<div class="mt-2 flex justify-end">
+<button class="rounded-md bg-black px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-gray-800">
+                    Post Comment
+                  </button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+
+</body></html>
