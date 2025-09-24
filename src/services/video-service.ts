@@ -1,13 +1,13 @@
 
-import { IPendingVideo, IVideo, IComment } from '@/types';
+import { IPendingVideo, IVideo, IComment, VideoStatus } from '@/types';
 import apiClient from './api-client';
 
 const isProduction = process.env.NODE_ENV === 'production';
 
-export const getPendingVideos = async (page: number): Promise<IPendingVideo[]> => {
+export const getPendingVideos = async (): Promise<IPendingVideo[]> => {
   try {
-    const response = await apiClient.get(`/videos/check?page=${page}`);
-    return response.data;
+    const response = await apiClient.get(`/videos/check`);
+    return response.data || [];
   } catch (error) {
     if (!isProduction) {
       console.error('Failed to fetch pending videos:', error);
@@ -42,7 +42,7 @@ export const getRejectedVideos = async (): Promise<IVideo[]> => {
 
 export const getVideoById = async (id: string): Promise<IPendingVideo | null> => {
   try {
-    const response = await apiClient.get(`/videos/${id}`);
+    const response = await apiClient.get(`/videos/check/${id}`);
     return response.data;
   } catch (error) {
     if (!isProduction) {
@@ -52,22 +52,12 @@ export const getVideoById = async (id: string): Promise<IPendingVideo | null> =>
   }
 };
 
-export const approveVideo = async (id: string): Promise<void> => {
+export const updateVideoStatus = async (id: string, status: VideoStatus): Promise<void> => {
   try {
-    await apiClient.post(`/videos/${id}/approve`);
+    await apiClient.put(`/videos/check/${id}`, null, { params: { status } });
   } catch (error) {
     if (!isProduction) {
-      console.error(`Failed to approve video with id ${id}:`, error);
-    }
-  }
-};
-
-export const rejectVideo = async (id: string): Promise<void> => {
-  try {
-    await apiClient.post(`/videos/${id}/reject`);
-  } catch (error) {
-    if (!isProduction) {
-      console.error(`Failed to reject video with id ${id}:`, error);
+      console.error(`Failed to update video status for id ${id}:`, error);
     }
   }
 };

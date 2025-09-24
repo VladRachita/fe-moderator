@@ -17,3 +17,8 @@ export interface IVideo {
   title: string;
   status: 'approved' | 'rejected';
 }
+
+export enum VideoStatus {
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED',
+}

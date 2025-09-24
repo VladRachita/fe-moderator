@@ -1,35 +1,57 @@
+'use client';
+
+import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
-import { IPendingVideo, IComment } from '@/types';
-import { getVideoById, approveVideo, rejectVideo, addComment } from '@/services/video-service';
+import { IPendingVideo, IComment, VideoStatus } from '@/types';
+import { updateVideoStatus, addComment } from '@/services/video-service';
 import Comments from './Comments';
 
 interface IVideoPlayerProps {
   video: IPendingVideo;
+  onStatusChange: (videoId: string) => void;
 }
 
-const VideoPlayer: React.FC<IVideoPlayerProps> = ({ video: initialVideo }) => {
+const VideoPlayer: React.FC<IVideoPlayerProps> = ({ video: initialVideo, onStatusChange }) => {
   const [video, setVideo] = useState<IPendingVideo | null>(initialVideo);
   const [comment, setComment] = useState('');
+  const [showVideo, setShowVideo] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [hasWatched, setHasWatched] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
-    const fetchVideo = async () => {
-      if (initialVideo) {
-        const fetchedVideo = await getVideoById(initialVideo.id);
-        setVideo(fetchedVideo);
-      }
-    };
-    fetchVideo();
+    setVideo(initialVideo);
+    setShowVideo(false);
+    setIsUpdating(false);
+    setHasWatched(false);
   }, [initialVideo]);
 
+  useEffect(() => {
+    const videoElement = videoRef.current;
+    if (videoElement) {
+      const handleVideoEnd = () => {
+        setHasWatched(true);
+      };
+      videoElement.addEventListener('ended', handleVideoEnd);
+      return () => {
+        videoElement.removeEventListener('ended', handleVideoEnd);
+      };
+    }
+  }, [showVideo]);
+
   const handleApprove = async () => {
-    if (video) {
-      await approveVideo(video.id);
+    if (video && !isUpdating) {
+      setIsUpdating(true);
+      await updateVideoStatus(video.id, VideoStatus.APPROVED);
+      onStatusChange(video.id);
     }
   };
 
   const handleReject = async () => {
-    if (video) {
-      await rejectVideo(video.id);
+    if (video && !isUpdating) {
+      setIsUpdating(true);
+      await updateVideoStatus(video.id, VideoStatus.REJECTED);
+      onStatusChange(video.id);
     }
   };
 
@@ -52,12 +74,23 @@ const VideoPlayer: React.FC<IVideoPlayerProps> = ({ video: initialVideo }) => {
       <div className="flex-1 p-8">
         <div className="mb-6">
           <div className="relative mb-4 aspect-video w-full">
-            <Image alt="Video for review" className="rounded-lg object-cover" src={video.presignedUrl} layout="fill" />
-            <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/30">
-              <button className="flex h-20 w-20 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-sm transition-colors hover:bg-white/30">
-                <span className="material-symbols-outlined text-6xl">play_arrow</span>
-              </button>
-            </div>
+            {showVideo ? (
+              <video ref={videoRef} src={video.presignedUrl} controls autoPlay className="h-full w-full rounded-lg" />
+            ) : (
+              <>
+                <div className="flex h-full w-full items-center justify-center rounded-lg bg-gray-200">
+                  <span className="material-symbols-outlined text-6xl">movie</span>
+                </div>
+                <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/30">
+                  <button
+                    onClick={() => setShowVideo(true)}
+                    className="flex h-20 w-20 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-sm transition-colors hover:bg-white/30"
+                  >
+                    <span className="material-symbols-outlined text-6xl">play_arrow</span>
+                  </button>
+                </div>
+              </>
+            )}
           </div>
           <div className="flex items-center justify-between">
             <div>
@@ -65,13 +98,13 @@ const VideoPlayer: React.FC<IVideoPlayerProps> = ({ video: initialVideo }) => {
               <p className="text-gray-500">Uploaded 3 hours ago</p>
             </div>
             <div className="flex items-center gap-3">
-              <button onClick={handleReject} className="flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-700">
+              <button onClick={handleReject} disabled={isUpdating || !hasWatched} className="flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-700 disabled:opacity-50">
                 <span className="material-symbols-outlined">close</span>
-                Reject
+                {isUpdating ? 'Rejecting...' : 'Reject'}
               </button>
-              <button onClick={handleApprove} className="flex items-center gap-2 rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-green-700">
+              <button onClick={handleApprove} disabled={isUpdating || !hasWatched} className="flex items-center gap-2 rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-green-700 disabled:opacity-50">
                 <span className="material-symbols-outlined">check</span>
-                Approve
+                {isUpdating ? 'Approving...' : 'Approve'}
               </button>
             </div>
           </div>
