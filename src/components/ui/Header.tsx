@@ -1,11 +1,16 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 
 const Header: React.FC = () => {
   const pathname = usePathname();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   return (
     <header className="flex items-center justify-between whitespace-nowrap border-b border-gray-200 px-6 py-4">
@@ -14,11 +19,11 @@ const Header: React.FC = () => {
           <h1 className="text-xl font-bold">Video Review Playlist</h1>
         </Link>
         <nav className="flex items-center gap-6">
-          <Link href="/">
-            <span className={`relative text-sm font-medium ${pathname === '/' ? 'font-bold text-black after:absolute after:bottom-[-4px] after:left-0 after:h-0.5 after:w-full after:bg-black after:content-[\'\']' : 'text-gray-500 hover:text-black'}`}>Reviews</span>
+          <Link href="/dashboard">
+            <span className={`relative text-sm font-medium ${isClient && pathname === '/dashboard' ? 'font-bold text-black after:absolute after:bottom-[-4px] after:left-0 after:h-0.5 after:w-full after:bg-black after:content-[\'\']' : 'text-gray-500 hover:text-black'}`}>Reviews</span>
           </Link>
           <Link href="/analytics">
-            <span className={`relative text-sm font-medium ${pathname === '/analytics' ? 'font-bold text-black after:absolute after:bottom-[-4px] after:left-0 after:h-0.5 after:w-full after:bg-black after:content-[\'\']' : 'text-gray-500 hover:text-black'}`}>Analytics</span>
+            <span className={`relative text-sm font-medium ${isClient && pathname === '/analytics' ? 'font-bold text-black after:absolute after:bottom-[-4px] after:left-0 after:h-0.5 after:w-full after:bg-black after:content-[\'\']' : 'text-gray-500 hover:text-black'}`}>Analytics</span>
           </Link>
         </nav>
       </div>

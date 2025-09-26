@@ -1,5 +1,6 @@
 'use client';
 
+import { usePathname } from 'next/navigation';
 import type { Metadata } from "next";
 import { Spline_Sans } from "next/font/google";
 import "./globals.css";
@@ -12,6 +13,9 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const pathname = usePathname();
+  const showHeader = pathname !== '/';
+
   return (
     <html lang="en">
       <head>
@@ -20,7 +24,7 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
       </head>
       <body className={`${splineSans.className} bg-white text-black`}>
-        <Header />
+        {showHeader && <Header />}
         <main>{children}</main>
       </body>
     </html>
