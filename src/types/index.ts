@@ -12,13 +12,13 @@ export interface IPendingVideo {
   comments: IComment[];
 }
 
-export interface IVideo {
-  id: string;
-  title: string;
-  status: 'approved' | 'rejected';
-}
-
 export enum VideoStatus {
   APPROVED = 'APPROVED',
   REJECTED = 'REJECTED',
+}
+
+export interface IAnalyticsSummary {
+  approvedCount: number;
+  rejectedCount: number;
+  pendingLast24hCount: number;
 }
