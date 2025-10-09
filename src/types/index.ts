@@ -5,11 +5,20 @@ export interface IComment {
   author: string;
 }
 
-export interface IPendingVideo {
+export interface IVideo {
   id: string;
   title: string;
+  comments?: IComment[];
+}
+
+export interface IPendingVideo extends IVideo {
   presignedUrl: string;
-  comments: IComment[];
+}
+
+export interface IModeratedVideo extends IVideo {
+  status: VideoStatus;
+  moderatedAt: string;
+  moderator?: string;
 }
 
 export enum VideoStatus {

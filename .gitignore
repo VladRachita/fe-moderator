@@ -74,6 +74,7 @@ agents/
 GEMINI.md
 .gemini/
 *.gemini-generated
+AGENTS.md
 
 # ================================
 # Operating System Files

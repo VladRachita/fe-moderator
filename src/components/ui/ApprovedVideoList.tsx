@@ -1,19 +1,26 @@
-
 import React from 'react';
-import { IVideo } from '@/types';
+import { IModeratedVideo, VideoStatus } from '@/types';
 
 interface IApprovedVideoListProps {
-  videos: IVideo[];
+  videos: IModeratedVideo[];
 }
 
 const ApprovedVideoList: React.FC<IApprovedVideoListProps> = ({ videos }) => {
+  const approvedVideos = videos.filter((video) => video.status === VideoStatus.APPROVED);
+
   return (
     <div>
-      <h2 className="text-2xl font-bold mb-4">Approved Videos</h2>
+      <h2 className="mb-4 text-2xl font-bold">Approved Videos</h2>
       <div className="space-y-2">
-        {videos.map((video) => (
+        {approvedVideos.length === 0 && <p className="text-sm text-gray-500">No approvals yet.</p>}
+        {approvedVideos.map((video) => (
           <div key={video.id} className="flex items-center justify-between rounded-md bg-green-100 p-3">
-            <p className="font-semibold">{video.title}</p>
+            <div>
+              <p className="font-semibold">{video.title}</p>
+              {video.moderatedAt && (
+                <p className="text-xs text-green-800">Reviewed {new Date(video.moderatedAt).toLocaleString()}</p>
+              )}
+            </div>
             <p className="text-sm font-medium text-green-800">Approved</p>
           </div>
         ))}

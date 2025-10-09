@@ -1,5 +1,11 @@
 
-import { IPendingVideo, IComment, IAnalyticsSummary, VideoStatus } from '@/types';
+import {
+  IPendingVideo,
+  IModeratedVideo,
+  IComment,
+  IAnalyticsSummary,
+  VideoStatus,
+} from '@/types';
 import apiClient from './api-client';
 
 const isProduction = process.env.NODE_ENV === 'production';
@@ -11,6 +17,26 @@ export const getPendingVideos = async (): Promise<IPendingVideo[]> => {
   } catch (error) {
     if (!isProduction) {
       console.error('Failed to fetch pending videos:', error);
+    }
+    return [];
+  }
+};
+
+export const getModeratedVideos = async (status?: VideoStatus): Promise<IModeratedVideo[]> => {
+  try {
+    const response = await apiClient.get('/api/v1/videos/check', {
+      params: status ? { status } : undefined,
+    });
+    if (Array.isArray(response.data)) {
+      return response.data;
+    }
+    if (Array.isArray(response.data?.items)) {
+      return response.data.items;
+    }
+    return [];
+  } catch (error) {
+    if (!isProduction) {
+      console.error('Failed to fetch moderated videos:', error);
     }
     return [];
   }
