@@ -6,6 +6,8 @@ import { Spline_Sans } from 'next/font/google';
 import './globals.css';
 import Header from '@/components/ui/Header';
 
+const HEADER_VISIBLE_ROUTES = ['/dashboard', '/analytics'];
+
 const splineSans = Spline_Sans({ subsets: ['latin'], display: 'optional' });
 
 export default function RootLayout({
@@ -14,7 +16,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const pathname = usePathname();
-  const showHeader = pathname !== '/';
+  const showHeader = HEADER_VISIBLE_ROUTES.some((route) => pathname.startsWith(route));
 
   return (
     <html lang="en">

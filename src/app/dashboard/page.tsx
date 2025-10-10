@@ -1,7 +1,7 @@
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 import VideoList from '@/components/ui/VideoList';
 import VideoPlayer from '@/components/ui/VideoPlayer';
@@ -9,12 +9,18 @@ import ApprovedVideoList from '@/components/ui/ApprovedVideoList';
 import RejectedVideoList from '@/components/ui/RejectedVideoList';
 import { getPendingVideos } from '@/services/video-service';
 import { IPendingVideo, IModeratedVideo, VideoStatus } from '@/types';
+import { useSession } from '@/lib/auth/use-session';
 
 const Page: React.FC = () => {
   const [videos, setVideos] = useState<IPendingVideo[]>([]);
   const [selectedVideo, setSelectedVideo] = useState<IPendingVideo | null>(null);
   const [approvedVideos, setApprovedVideos] = useState<IModeratedVideo[]>([]);
   const [rejectedVideos, setRejectedVideos] = useState<IModeratedVideo[]>([]);
+
+  const router = useRouter();
+  const { session, isLoading: isSessionLoading } = useSession();
+
+  const canModerate = Boolean(session?.authenticated && session.permissions.canModerate);
 
   useEffect(() => {
     const fetchVideos = async () => {
@@ -26,8 +32,29 @@ const Page: React.FC = () => {
       }
     };
 
-    fetchVideos();
-  }, []);
+    if (canModerate) {
+      void fetchVideos();
+    } else {
+      setVideos([]);
+    }
+  }, [canModerate]);
+
+  useEffect(() => {
+    if (isSessionLoading) {
+      return;
+    }
+    if (!session?.authenticated) {
+      router.replace('/login?returnTo=/dashboard');
+      return;
+    }
+    if (!session.permissions.canModerate) {
+      if (session.permissions.canViewAnalytics) {
+        router.replace('/analytics');
+        return;
+      }
+      router.replace('/login?error=authentication_failed');
+    }
+  }, [isSessionLoading, session, router]);
 
   const handleStatusChange = (videoId: string, status: VideoStatus) => {
     const moderatedSource = selectedVideo ?? videos.find((video) => video.id === videoId) ?? null;
@@ -53,6 +80,14 @@ const Page: React.FC = () => {
       setRejectedVideos((prev) => [...prev, moderatedVideo]);
     }
   };
+
+  if (isSessionLoading) {
+    return null;
+  }
+
+  if (!canModerate) {
+    return null;
+  }
 
   return (
     <div className="flex h-screen w-full flex-col">

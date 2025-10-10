@@ -31,3 +31,16 @@ export interface IAnalyticsSummary {
   rejectedCount: number;
   pendingLast24hCount: number;
 }
+
+export interface IUserSession {
+  authenticated: boolean;
+  subject?: string;
+  name?: string;
+  email?: string;
+  scopes: string[];
+  roles: string[];
+  permissions: {
+    canModerate: boolean;
+    canViewAnalytics: boolean;
+  };
+}

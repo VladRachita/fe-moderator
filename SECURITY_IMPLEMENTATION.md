@@ -143,6 +143,7 @@ Add via Next.js middleware:
 - **Encrypted session storage:** Access tokens live in AES-GCM encrypted cookies (`mod_access_token`) alongside session metadata; the backend-issued `__Host-vsanity-refresh` cookie is forwarded unchanged to align with the “server memory + HttpOnly cookie” requirements.
 - **Defence-in-depth proxy:** All backend traffic now funnels through `/api/proxy/*`, which enforces CSRF via double-submit cookie, auto-refreshes access tokens on 401, and strips hop-by-hop headers before forwarding.
 - **Security middleware:** `src/middleware.ts` injects HSTS, CSP, COOP/COEP/CORP, and guards protected routes (`/dashboard`, `/analytics`) to require a valid access cookie, satisfying section E.
+- **Role-aware navigation:** `/api/auth/session` now decodes JWT roles/scopes, enforces `exp`, and derives `canModerate` / `canViewAnalytics` so header links and page components surface only the destinations the current role can reach (moderators → Reviews, analysts → Analytics).
 - **Client integration:** The login screen launches the OAuth flow, protected pages redirect unauthenticated users to `/login`, and the axios client supplies CSRF headers and reacts to 401s, aligning with parts C and D of the roadmap.
 
 ---
@@ -158,7 +159,8 @@ To validate the frontend’s PKCE-based session flow against the Spring WebFlux 
 - Provide test moderator credentials for interactive login during development.
 
 ### Resource API Contract
-- All moderation endpoints (`/api/v1/videos/*`, `/api/v1/analytics/summary`, etc.) should require `Authorization: Bearer <access_token>` and verify scopes/roles.
+- All moderation endpoints (`/api/v1/videos/check/*`) should require `Authorization: Bearer <access_token>` and verify scopes/roles.
+- All analytics endpoints ( `/api/v1/analytics/*`) should require `Authorization: Bearer <access_token>` and verify scopes/roles.
 - Return HTTP 401 for expired or invalid tokens so the BFF can trigger refresh; return HTTP 403 for authorization failures.
 - Keep response bodies JSON-encoded; include an `error` field when requests fail so the UI can surface human-readable feedback.
 

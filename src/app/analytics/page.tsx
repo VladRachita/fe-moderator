@@ -1,11 +1,18 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { getAnalyticsSummary } from '@/services/video-service';
 import { IAnalyticsSummary } from '@/types';
+import { useSession } from '@/lib/auth/use-session';
 
 const AnalyticsPage: React.FC = () => {
   const [summary, setSummary] = useState<IAnalyticsSummary | null>(null);
+  const router = useRouter();
+  const { session, isLoading: isSessionLoading } = useSession();
+  const canViewAnalytics = Boolean(
+    session?.authenticated && session.permissions.canViewAnalytics,
+  );
 
   useEffect(() => {
     const fetchSummary = async () => {
@@ -13,8 +20,37 @@ const AnalyticsPage: React.FC = () => {
       setSummary(summaryData);
     };
 
-    fetchSummary();
-  }, []);
+    if (canViewAnalytics) {
+      void fetchSummary();
+    } else {
+      setSummary(null);
+    }
+  }, [canViewAnalytics]);
+
+  useEffect(() => {
+    if (isSessionLoading) {
+      return;
+    }
+    if (!session?.authenticated) {
+      router.replace('/login?returnTo=/analytics');
+      return;
+    }
+    if (!session.permissions.canViewAnalytics) {
+      if (session.permissions.canModerate) {
+        router.replace('/dashboard');
+        return;
+      }
+      router.replace('/login?error=authentication_failed');
+    }
+  }, [isSessionLoading, session, router]);
+
+  if (isSessionLoading) {
+    return null;
+  }
+
+  if (!canViewAnalytics) {
+    return null;
+  }
 
   return (
     <div className="p-8">
