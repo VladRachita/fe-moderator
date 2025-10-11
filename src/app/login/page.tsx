@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 const errorMessages: Record<string, string> = {
   missing_credentials: 'Enter both email and password to continue.',
   authentication_failed: 'Authentication failed. Check your credentials and try again.',
+  authorization_failed: 'You do not have access to any dashboards. Contact your administrator.',
   refresh_failed: 'Your session has expired. Please sign in again.',
   session_expired: 'Session expired. Log in to continue.',
   state_mismatch: 'Security check failed. Please try again.',

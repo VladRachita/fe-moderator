@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import { IUserIdentity } from '@/types';
 import { getAuthConfig } from './config';
 import { TokenResponse, getBackendRefreshToken } from './tokens';
 
@@ -149,4 +150,60 @@ export const revokeTokens = async (request: NextRequest): Promise<string[]> => {
     }),
   });
   return extractSetCookies(response);
+};
+
+const resolveBackendBaseUrl = (): string => {
+  const baseUrl = process.env.BACKEND_API_BASE_URL ?? 'http://localhost:8080';
+  return baseUrl.replace(/\/+$/, '');
+};
+
+export class BackendIdentityError extends Error {
+  status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'BackendIdentityError';
+    this.status = status;
+  }
+}
+
+const normalizeScopes = (scopes: unknown): string[] => {
+  if (Array.isArray(scopes)) {
+    return scopes.filter((scope): scope is string => typeof scope === 'string');
+  }
+  if (typeof scopes === 'string') {
+    return scopes.split(/\s+/).filter(Boolean);
+  }
+  return [];
+};
+
+export const fetchUserIdentity = async (accessToken: string): Promise<IUserIdentity> => {
+  const backendBaseUrl = resolveBackendBaseUrl();
+  const response = await fetch(`${backendBaseUrl}/api/v1/me`, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      Accept: 'application/json',
+      'Cache-Control': 'no-store',
+      Pragma: 'no-cache',
+    },
+    cache: 'no-store',
+  });
+
+  if (response.status === 401 || response.status === 403) {
+    throw new BackendIdentityError('Failed to fetch user identity', response.status);
+  }
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(`Failed to fetch user identity: ${response.status} ${message}`);
+  }
+
+  const payload = (await response.json()) as Partial<IUserIdentity>;
+  return {
+    userId: payload.userId || undefined,
+    clientId: payload.clientId || undefined,
+    role: payload.role || undefined,
+    scopes: normalizeScopes(payload.scopes),
+  };
 };

@@ -7,7 +7,7 @@ import {
   clearSessionCookies,
   getAccessTokenValue,
 } from '@/lib/auth/tokens';
-import { refreshTokens } from '@/lib/auth/server-client';
+import { refreshTokens, fetchUserIdentity, BackendIdentityError } from '@/lib/auth/server-client';
 import { COOKIE_NAMES, CSRF_HEADER } from '@/lib/auth/constants';
 
 const isSafeMethod = (method: string) => ['GET', 'HEAD', 'OPTIONS'].includes(method);
@@ -127,10 +127,29 @@ const proxyHandler = async (request: NextRequest, paramsPromise: Promise<{ path:
 
   const newAccessToken = getAccessTokenValue(refreshedResult.data);
   backendResponse = await forward(request, newAccessToken, params.path, bodyBuffer);
+
+  try {
+    await fetchUserIdentity(newAccessToken);
+  } catch (identityError) {
+    if (identityError instanceof BackendIdentityError) {
+      backendResponse.body?.cancel?.();
+      const response = NextResponse.json(
+        { error: identityError.status === 403 ? 'forbidden' : 'reauth_required' },
+        { status: identityError.status, headers: { 'Cache-Control': 'no-store' } },
+      );
+      if (identityError.status === 401) {
+        clearSessionCookies(response);
+      }
+      return response;
+    }
+    console.error('Failed to refresh user identity', identityError);
+  }
+
   const response = await toNextResponse(backendResponse);
   setSessionCookies(response, refreshedResult.data, Date.now());
   issueCsrfCookie(response, randomUUID());
   refreshedResult.setCookies.forEach((cookie) => response.headers.append('set-cookie', cookie));
+  response.headers.set('x-session-refreshed', '1');
   return response;
 };
 

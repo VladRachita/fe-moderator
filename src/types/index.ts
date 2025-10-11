@@ -37,10 +37,22 @@ export interface IUserSession {
   subject?: string;
   name?: string;
   email?: string;
+  userId?: string;
+  clientId?: string;
+  role?: string;
+  identityKey?: string;
+  error?: string;
   scopes: string[];
   roles: string[];
   permissions: {
     canModerate: boolean;
     canViewAnalytics: boolean;
   };
+}
+
+export interface IUserIdentity {
+  userId: string;
+  clientId: string;
+  role: string;
+  scopes: string[];
 }

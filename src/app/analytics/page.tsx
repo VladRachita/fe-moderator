@@ -9,7 +9,7 @@ import { useSession } from '@/lib/auth/use-session';
 const AnalyticsPage: React.FC = () => {
   const [summary, setSummary] = useState<IAnalyticsSummary | null>(null);
   const router = useRouter();
-  const { session, isLoading: isSessionLoading } = useSession();
+  const { session, isLoading: isSessionLoading, identityVersion } = useSession();
   const canViewAnalytics = Boolean(
     session?.authenticated && session.permissions.canViewAnalytics,
   );
@@ -25,10 +25,14 @@ const AnalyticsPage: React.FC = () => {
     } else {
       setSummary(null);
     }
-  }, [canViewAnalytics]);
+  }, [canViewAnalytics, identityVersion]);
 
   useEffect(() => {
     if (isSessionLoading) {
+      return;
+    }
+    if (session?.error === 'forbidden') {
+      router.replace('/login?error=authorization_failed');
       return;
     }
     if (!session?.authenticated) {
@@ -43,6 +47,10 @@ const AnalyticsPage: React.FC = () => {
       router.replace('/login?error=authentication_failed');
     }
   }, [isSessionLoading, session, router]);
+
+  useEffect(() => {
+    setSummary(null);
+  }, [identityVersion]);
 
   if (isSessionLoading) {
     return null;

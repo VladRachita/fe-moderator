@@ -3,8 +3,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthConfig } from '@/lib/auth/config';
 import { createCodeVerifier, createCodeChallenge, createState } from '@/lib/auth/pkce';
 import { sanitizeReturnTo, resolveRedirectUri } from '@/lib/auth/url';
-import { authorizeUser, exchangeAuthorizationCode } from '@/lib/auth/server-client';
-import { issueCsrfCookie, setSessionCookies } from '@/lib/auth/tokens';
+import {
+  authorizeUser,
+  exchangeAuthorizationCode,
+  fetchUserIdentity,
+  BackendIdentityError,
+} from '@/lib/auth/server-client';
+import { issueCsrfCookie, setSessionCookies, getAccessTokenValue } from '@/lib/auth/tokens';
+import { decodeJwtPayload, mapSessionDetails } from '@/lib/auth/jwt';
 
 const parseBody = async (request: NextRequest) => {
   const contentType = request.headers.get('content-type') ?? '';
@@ -38,6 +44,7 @@ export const POST = async (request: NextRequest) => {
   const password = extractString(body.password);
   const deviceId = extractString(body.deviceId);
   const returnTo = extractString(body.returnTo);
+  const sanitizedReturnTo = sanitizeReturnTo(returnTo);
 
   if (!email || !password) {
     return NextResponse.json({ error: 'missing_credentials' }, { status: 400 });
@@ -73,8 +80,39 @@ export const POST = async (request: NextRequest) => {
       redirectUri: redirectTarget,
     });
 
+    const accessToken = getAccessTokenValue(tokens);
+    let identity;
+    try {
+      identity = await fetchUserIdentity(accessToken);
+    } catch (identityError) {
+      if (identityError instanceof BackendIdentityError) {
+        const code = identityError.status === 403 ? 'authorization_failed' : 'authentication_failed';
+        const response = NextResponse.json({ error: code }, { status: identityError.status });
+        response.headers.set('Cache-Control', 'no-store');
+        return response;
+      }
+      console.error('Failed to resolve user identity after login', identityError);
+      const response = NextResponse.json({ error: 'authentication_failed' }, { status: 500 });
+      response.headers.set('Cache-Control', 'no-store');
+      return response;
+    }
+
+    const payload = decodeJwtPayload(accessToken);
+    const sessionDetails = mapSessionDetails(payload, identity);
+
+    const hasAuthorizedView =
+      sessionDetails.permissions.canModerate || sessionDetails.permissions.canViewAnalytics;
+    if (!hasAuthorizedView) {
+      const response = NextResponse.json({ error: 'authorization_failed' }, { status: 403 });
+      response.headers.set('Cache-Control', 'no-store');
+      return response;
+    }
+
+    const defaultRedirect = sessionDetails.permissions.canModerate ? '/dashboard' : '/analytics';
+    const redirectDestination = sanitizedReturnTo ?? defaultRedirect;
+
     const response = NextResponse.json({
-      redirect: sanitizeReturnTo(returnTo),
+      redirect: redirectDestination,
     });
 
     setSessionCookies(response, tokens, Date.now());
@@ -85,7 +123,9 @@ export const POST = async (request: NextRequest) => {
     return response;
   } catch (error) {
     console.error('Login flow failed:', error);
-    return NextResponse.json({ error: 'authentication_failed' }, { status: 401 });
+    const response = NextResponse.json({ error: 'authentication_failed' }, { status: 401 });
+    response.headers.set('Cache-Control', 'no-store');
+    return response;
   }
 };
 

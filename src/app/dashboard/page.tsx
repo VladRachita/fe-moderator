@@ -18,7 +18,7 @@ const Page: React.FC = () => {
   const [rejectedVideos, setRejectedVideos] = useState<IModeratedVideo[]>([]);
 
   const router = useRouter();
-  const { session, isLoading: isSessionLoading } = useSession();
+  const { session, isLoading: isSessionLoading, identityVersion } = useSession();
 
   const canModerate = Boolean(session?.authenticated && session.permissions.canModerate);
 
@@ -37,10 +37,14 @@ const Page: React.FC = () => {
     } else {
       setVideos([]);
     }
-  }, [canModerate]);
+  }, [canModerate, identityVersion]);
 
   useEffect(() => {
     if (isSessionLoading) {
+      return;
+    }
+    if (session?.error === 'forbidden') {
+      router.replace('/login?error=authorization_failed');
       return;
     }
     if (!session?.authenticated) {
@@ -55,6 +59,13 @@ const Page: React.FC = () => {
       router.replace('/login?error=authentication_failed');
     }
   }, [isSessionLoading, session, router]);
+
+  useEffect(() => {
+    setVideos([]);
+    setSelectedVideo(null);
+    setApprovedVideos([]);
+    setRejectedVideos([]);
+  }, [identityVersion]);
 
   const handleStatusChange = (videoId: string, status: VideoStatus) => {
     const moderatedSource = selectedVideo ?? videos.find((video) => video.id === videoId) ?? null;

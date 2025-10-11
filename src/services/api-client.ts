@@ -1,5 +1,6 @@
 
 import axios from 'axios';
+import { emitSessionChange } from '@/lib/auth/session-events';
 
 const SAFE_METHODS = ['get', 'head', 'options'];
 const CSRF_COOKIE = 'mod_csrf_token';
@@ -33,7 +34,15 @@ apiClient.interceptors.request.use((config) => {
 });
 
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if (typeof window !== 'undefined') {
+      const refreshedHeader = response.headers['x-session-refreshed'];
+      if (refreshedHeader === '1' || refreshedHeader === 'true') {
+        emitSessionChange();
+      }
+    }
+    return response;
+  },
   (error) => {
     if (typeof window !== 'undefined' && error?.response?.status === 401) {
       window.location.href = '/login?error=session_expired';
