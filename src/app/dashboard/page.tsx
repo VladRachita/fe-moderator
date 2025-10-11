@@ -43,6 +43,11 @@ const Page: React.FC = () => {
     if (isSessionLoading) {
       return;
     }
+    if (session?.error === 'logout' || session?.error === 'logout_failed') {
+      const message = session.error === 'logout_failed' ? 'logout_failed' : 'logged_out';
+      router.replace(`/login?message=${message}`);
+      return;
+    }
     if (session?.error === 'forbidden') {
       router.replace('/login?error=authorization_failed');
       return;

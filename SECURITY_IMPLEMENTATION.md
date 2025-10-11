@@ -139,12 +139,14 @@ Add via Next.js middleware:
 
 ## Frontend Implementation Status
 
-- **PKCE + session handlers:** `/api/auth/login` now posts moderator credentials to `/oauth2/authorize`, exchanges the resulting code at `/oauth2/token`, and stores only the access token plus session metadata. `/api/auth/refresh` and `/api/auth/logout` wrap the refresh and revoke paths defined in sections A/B.
-- **Encrypted session storage:** Access tokens live in AES-GCM encrypted cookies (`mod_access_token`) alongside session metadata; the backend-issued `__Host-vsanity-refresh` cookie is forwarded unchanged to align with the “server memory + HttpOnly cookie” requirements.
-- **Defence-in-depth proxy:** All backend traffic now funnels through `/api/proxy/*`, which enforces CSRF via double-submit cookie, auto-refreshes access tokens on 401, and strips hop-by-hop headers before forwarding.
+- **PKCE + session handlers:** `/api/auth/login` performs the PKCE dance against `/oauth2/authorize`, `/api/auth/refresh` rotates credentials, and `/api/auth/logout` revokes refresh tokens before clearing cookies—matching sections A and B.
+- **Encrypted session storage:** The access token is stored only as AES-GCM encrypted cookie (`mod_access_token`) plus volatile in-memory state. The backend-issued `__Host-vsanity-refresh` cookie is forwarded untouched, keeping all tokens out of `localStorage` / readable cookies.
+- **Identity resolution via `/api/v1/me`:** After every login or refresh the BFF calls `/api/v1/me`, which now returns `{ authenticated, userId, clientId, role, identityKey, permissions }`. We persist only those fields in memory and drop legacy `scopes`/`roles` exposure to reduce data leakage.
+- **Permission-driven UI:** The frontend consumes `permissions.canModerate` / `.canViewAnalytics` exclusively for gating dashboards and actions. Pages never render raw scope or role strings, and identity switches (tracked by `identityKey`) purge cached moderator/analyst state before refetching.
+- **Defence-in-depth proxy:** All backend traffic funnels through `/api/proxy/*`, which enforces CSRF via double-submit cookie, auto-refreshes access tokens on 401, strips hop-by-hop headers, and rehydrates session cookies only after the `/me` call succeeds.
 - **Security middleware:** `src/middleware.ts` injects HSTS, CSP, COOP/COEP/CORP, and guards protected routes (`/dashboard`, `/analytics`) to require a valid access cookie, satisfying section E.
-- **Role-aware navigation:** `/api/auth/session` now decodes JWT roles/scopes, enforces `exp`, and derives `canModerate` / `canViewAnalytics` so header links and page components surface only the destinations the current role can reach (moderators → Reviews, analysts → Analytics).
-- **Client integration:** The login screen launches the OAuth flow, protected pages redirect unauthenticated users to `/login`, and the axios client supplies CSRF headers and reacts to 401s, aligning with parts C and D of the roadmap.
+- **Coordinated logout:** A BroadcastChannel + storage fallback notifies every tab to wipe the volatile session, clear identity-scoped caches, and redirect to `/login` with informative messaging when logout or token revocation occurs.
+- **Client integration:** The login screen launches the OAuth flow, protected pages redirect unauthenticated users to `/login`, and the axios client supplies CSRF headers, reacts to 401s, and emits session-refresh events so React state stays harmonised.
 
 ---
 

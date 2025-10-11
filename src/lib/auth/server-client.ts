@@ -167,16 +167,6 @@ export class BackendIdentityError extends Error {
   }
 }
 
-const normalizeScopes = (scopes: unknown): string[] => {
-  if (Array.isArray(scopes)) {
-    return scopes.filter((scope): scope is string => typeof scope === 'string');
-  }
-  if (typeof scopes === 'string') {
-    return scopes.split(/\s+/).filter(Boolean);
-  }
-  return [];
-};
-
 export const fetchUserIdentity = async (accessToken: string): Promise<IUserIdentity> => {
   const backendBaseUrl = resolveBackendBaseUrl();
   const response = await fetch(`${backendBaseUrl}/api/v1/me`, {
@@ -200,10 +190,19 @@ export const fetchUserIdentity = async (accessToken: string): Promise<IUserIdent
   }
 
   const payload = (await response.json()) as Partial<IUserIdentity>;
+  const resolvedAuthenticated =
+    Object.prototype.hasOwnProperty.call(payload, 'authenticated')
+      ? Boolean(payload.authenticated)
+      : true;
   return {
+    authenticated: resolvedAuthenticated,
     userId: payload.userId || undefined,
     clientId: payload.clientId || undefined,
     role: payload.role || undefined,
-    scopes: normalizeScopes(payload.scopes),
+    identityKey: payload.identityKey || undefined,
+    permissions: {
+      canModerate: Boolean(payload.permissions?.canModerate),
+      canViewAnalytics: Boolean(payload.permissions?.canViewAnalytics),
+    },
   };
 };

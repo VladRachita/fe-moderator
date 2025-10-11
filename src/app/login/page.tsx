@@ -13,6 +13,11 @@ const errorMessages: Record<string, string> = {
   default: 'Unable to sign you in right now. Please try again.',
 };
 
+const infoMessages: Record<string, string> = {
+  logged_out: 'You have been signed out of your session.',
+  logout_failed: 'We could not confirm the logout with the server. Sign in again to continue.',
+};
+
 const LoginPage: React.FC = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -22,9 +27,11 @@ const LoginPage: React.FC = () => {
   const [formError, setFormError] = useState<string | null>(null);
 
   const error = searchParams.get('error');
+  const message = searchParams.get('message');
   const returnTo = searchParams.get('returnTo') ?? undefined;
 
   const displayError = formError ?? (error ? errorMessages[error] ?? errorMessages.default : null);
+  const infoBanner = message ? infoMessages[message] ?? null : null;
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -68,6 +75,11 @@ const LoginPage: React.FC = () => {
         <p className="mb-6 text-center text-sm text-gray-600">
           Use your workstation credentials to start a moderated session.
         </p>
+        {infoBanner && (
+          <div className="mb-4 rounded border border-blue-600 bg-blue-100 px-3 py-2 text-sm text-blue-800">
+            {infoBanner}
+          </div>
+        )}
         {displayError && (
           <div className="mb-4 rounded border border-red-600 bg-red-100 px-3 py-2 text-sm text-red-800">
             {displayError}

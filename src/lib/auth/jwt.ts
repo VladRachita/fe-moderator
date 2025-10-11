@@ -75,10 +75,15 @@ const hasScopePrefix = (scopes: string[], prefix: string) =>
   scopes.some((scope) => scope.startsWith(prefix));
 
 export interface UserIdentity {
+  authenticated?: boolean;
   userId?: string;
   clientId?: string;
   role?: string;
-  scopes?: string[];
+  identityKey?: string;
+  permissions?: {
+    canModerate: boolean;
+    canViewAnalytics: boolean;
+  };
 }
 
 export interface SessionDetails {
@@ -119,6 +124,9 @@ const ensureRoleList = (identity: UserIdentity | undefined, fallbackRoles: strin
 };
 
 const computeIdentityKey = (identity: UserIdentity | undefined, payload: JwtPayload): string | undefined => {
+  if (identity?.identityKey) {
+    return identity.identityKey;
+  }
   const userId = identity?.userId ?? (typeof payload.sub === 'string' ? payload.sub : undefined);
   if (!userId && !identity?.clientId) {
     return undefined;
@@ -136,7 +144,7 @@ export const mapSessionDetails = (
     return ANONYMOUS;
   }
 
-  const scopes = identity?.scopes ?? normalizeScopes(payload);
+  const scopes = identity ? [] : normalizeScopes(payload);
   const roles = ensureRoleList(identity, parseRoles(payload));
   const normalizedRoles = roles.map((role) => normalizeRole(role));
 
@@ -160,7 +168,7 @@ export const mapSessionDetails = (
   }
 
   return {
-    authenticated: true,
+    authenticated: identity?.authenticated ?? true,
     subject: payload.sub,
     name: payload.name ?? payload.preferred_username,
     email: payload.email,
@@ -171,8 +179,8 @@ export const mapSessionDetails = (
     roles,
     identityKey: computeIdentityKey(identity, payload),
     permissions: {
-      canModerate,
-      canViewAnalytics,
+      canModerate: identity?.permissions?.canModerate ?? canModerate,
+      canViewAnalytics: identity?.permissions?.canViewAnalytics ?? canViewAnalytics,
     },
   };
 };

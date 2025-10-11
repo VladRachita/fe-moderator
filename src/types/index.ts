@@ -51,8 +51,13 @@ export interface IUserSession {
 }
 
 export interface IUserIdentity {
-  userId: string;
-  clientId: string;
-  role: string;
-  scopes: string[];
+  authenticated: boolean;
+  userId?: string;
+  clientId?: string;
+  role?: string;
+  identityKey?: string;
+  permissions: {
+    canModerate: boolean;
+    canViewAnalytics: boolean;
+  };
 }

@@ -5,11 +5,13 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useSession } from '@/lib/auth/use-session';
+import { useLogout } from '@/lib/auth/use-logout';
 
 const Header: React.FC = () => {
   const pathname = usePathname();
   const [isClient, setIsClient] = useState(false);
-  const { session } = useSession();
+  const { session, forceLogout } = useSession();
+  const { logout, isLoggingOut, error: logoutError } = useLogout(forceLogout);
 
   useEffect(() => {
     setIsClient(true);
@@ -57,6 +59,23 @@ const Header: React.FC = () => {
         <button>
           <Image alt="User avatar" className="rounded-full" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAiKajiDtNMgaU32_95LAooZoEVoRWEjAFZzFLGMq4T8S1QorIoBTO0mpbV9J4LPhzKVaV07eSB59W9_AD3H3mKrWV4oA43YNmImItF8EMtpjyM5cuUpmxZYBvNzxpQD1OPXSEw1W0MviRFY-HPhwNLRsqEssekF5N7q5QQurnMuLoyg_Dci6UOmuUnc2WOLSUX4nmN2cJjNPSPr2XAx1-12PRYUUXhJowZACgshSyttgfs4FCQemFDzfCLjJ0JXIXFUehD2Ui0TA" width={40} height={40} />
         </button>
+        <div className="flex flex-col items-end gap-1">
+          <button
+            type="button"
+            className="rounded bg-gray-200 px-3 py-1 text-sm font-semibold text-gray-700 transition hover:bg-gray-300 disabled:cursor-not-allowed disabled:opacity-60"
+            onClick={() => {
+              void logout();
+            }}
+            disabled={isLoggingOut}
+          >
+            {isLoggingOut ? 'Signing out…' : 'Logout'}
+          </button>
+          {logoutError && (
+            <span className="text-xs text-red-600">
+              We could not reach the logout service. Close this tab if the issue persists.
+            </span>
+          )}
+        </div>
       </div>
     </header>
   );

@@ -55,7 +55,31 @@ export const POST = async (request: NextRequest) => {
   const challenge = createCodeChallenge(verifier);
   const state = createState();
   const redirectTarget = resolveRedirectUri(request.url, redirectUri, appUrl);
-  const scopes = scope.split(/\s+/).filter(Boolean);
+
+  const configuredScopes = scope.split(/\s+/).filter(Boolean);
+  const deriveScopesForTarget = (scopesList: string[], target?: string): string[] => {
+    if (!target) {
+      return scopesList;
+    }
+    const baseScopes = scopesList.filter((item) => !item.includes(':'));
+    const analyticsScopes = scopesList.filter((item) => item.startsWith('analytics:'));
+    const moderationScopes = scopesList.filter((item) => item.startsWith('moderation:'));
+
+    if (target.startsWith('/analytics')) {
+      const unique = new Set<string>([...baseScopes, ...analyticsScopes]);
+      return Array.from(unique);
+    }
+
+    if (target.startsWith('/dashboard')) {
+      const unique = new Set<string>([...baseScopes, ...moderationScopes, ...analyticsScopes]);
+      return Array.from(unique);
+    }
+
+    // For other destinations reuse full configured set so privileged routes keep working.
+    return scopesList;
+  };
+
+  const scopes = deriveScopesForTarget(configuredScopes, sanitizedReturnTo);
 
   try {
     const authorizeResponse = await authorizeUser({
