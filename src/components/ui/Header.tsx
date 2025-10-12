@@ -69,7 +69,7 @@ const Header: React.FC = () => {
                     : 'text-gray-500 hover:text-black'
                 }`}
               >
-                User Management
+                Platform Users
               </span>
             </Link>
           )}

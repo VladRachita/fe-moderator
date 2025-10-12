@@ -63,6 +63,7 @@ export const POST = async (request: NextRequest) => {
         ...scopesList.filter((item) => !item.includes(':')),
         ...scopesList.filter((item) => item.startsWith('moderation:')),
         ...scopesList.filter((item) => item.startsWith('analytics:')),
+        ...scopesList.filter((item) => item.startsWith('admin:')),
       ]);
       return Array.from(unique);
     }
@@ -99,6 +100,7 @@ export const POST = async (request: NextRequest) => {
       ...baseScopes,
       ...moderationScopes,
       ...analyticsScopes,
+      ...adminScopes,
     ]);
     return Array.from(unique);
   };

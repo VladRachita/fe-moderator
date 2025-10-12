@@ -2,15 +2,24 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createAdminUser, AdminUserProvisionError } from '@/services/admin-service';
+import {
+  createAdminUser,
+  listAdminUsers,
+  updateAdminUserRole,
+  AdminUserProvisionError,
+  AdminUserRoleUpdateError,
+  AdminUserListError,
+} from '@/services/admin-service';
 import { useSession } from '@/lib/auth/use-session';
-import type { PlatformRole, IAdminUserProvisionResult } from '@/types';
+import type { PlatformRole, IAdminUserProvisionResult, IStaffUserSummary } from '@/types';
 import { validatePasswordPolicy } from '@/lib/password-policy';
 
 const ROLE_OPTIONS: { label: string; value: PlatformRole }[] = [
   { label: 'Moderator', value: 'MODERATOR' },
   { label: 'Analyst', value: 'ANALYST' },
 ];
+
+const USERNAME_PATTERN = /^[A-Za-z0-9._-]{3,80}$/;
 
 interface FormValues {
   username: string;
@@ -43,6 +52,61 @@ const SuperAdminPage: React.FC = () => {
   >(null);
   const [temporarySecret, setTemporarySecret] = useState<string | null>(null);
   const [showTemporaryPassword, setShowTemporaryPassword] = useState(false);
+  const [staffMembers, setStaffMembers] = useState<IStaffUserSummary[]>([]);
+  const [isStaffLoading, setIsStaffLoading] = useState(false);
+  const [staffError, setStaffError] = useState<string | null>(null);
+  const [roleChangeState, setRoleChangeState] = useState<Record<string, boolean>>({});
+  const [roleChangeError, setRoleChangeError] = useState<string | null>(null);
+
+  const roleOrder = useMemo(() => ({ MODERATOR: 0, ANALYST: 1 }), []);
+
+  const sortStaffMembers = useCallback(
+    (members: IStaffUserSummary[]): IStaffUserSummary[] => {
+      return [...members].sort((a, b) => {
+        const roleComparison = roleOrder[a.role] - roleOrder[b.role];
+        if (roleComparison !== 0) {
+          return roleComparison;
+        }
+        const createdA = new Date(a.createdAt).getTime();
+        const createdB = new Date(b.createdAt).getTime();
+        return createdA - createdB;
+      });
+    },
+    [roleOrder],
+  );
+
+  const loadStaff = useCallback(async (): Promise<void> => {
+    if (!canManageUsers) {
+      setStaffMembers([]);
+      return;
+    }
+    setIsStaffLoading(true);
+    setStaffError(null);
+    try {
+      const staffList = await listAdminUsers();
+      setStaffMembers(sortStaffMembers(staffList));
+      setRoleChangeState({});
+      setRoleChangeError(null);
+    } catch (error) {
+      const typedError = error instanceof Error ? error : new Error('Failed to load staff.');
+      if (
+        typedError instanceof AdminUserListError &&
+        (typedError.status === 401 || typedError.status === 403)
+      ) {
+        setStaffMembers([]);
+        router.replace('/login?error=authorization_failed');
+        return;
+      }
+      const fallback =
+        typedError instanceof AdminUserListError && typedError.issues.length > 0
+          ? typedError.issues[0]
+          : typedError.message;
+      setStaffError(fallback);
+      setStaffMembers([]);
+    } finally {
+      setIsStaffLoading(false);
+    }
+  }, [canManageUsers, router, sortStaffMembers]);
 
   useEffect(() => {
     if (identityVersion === 0) {
@@ -87,6 +151,18 @@ const SuperAdminPage: React.FC = () => {
     }
   }, [isSessionLoading, session, router]);
 
+  useEffect(() => {
+    if (isSessionLoading) {
+      return;
+    }
+    if (!canManageUsers) {
+      setStaffMembers([]);
+      setRoleChangeState({});
+      return;
+    }
+    void loadStaff();
+  }, [isSessionLoading, canManageUsers, identityVersion, loadStaff]);
+
   const resetForm = useCallback(() => {
     setFormValues({
       username: '',
@@ -104,6 +180,9 @@ const SuperAdminPage: React.FC = () => {
 
     if (!trimmedUsername) {
       nextErrors.username = 'Username is required.';
+    } else if (!USERNAME_PATTERN.test(trimmedUsername)) {
+      nextErrors.username =
+        'Username must be 3-80 characters using letters, numbers, dots, underscores, or hyphens.';
     }
     if (!trimmedEmail) {
       nextErrors.email = 'Email is required.';
@@ -122,6 +201,67 @@ const SuperAdminPage: React.FC = () => {
     setFieldErrors(nextErrors);
     return nextErrors;
   }, [formValues]);
+
+  const handleRoleSelection = useCallback(
+    async (user: IStaffUserSummary, nextRole: PlatformRole) => {
+      if (user.role === nextRole) {
+        return;
+      }
+
+      const confirmed = window.confirm(
+        `Change ${user.username}'s role to ${nextRole.toLowerCase()}? Their current session will be revoked.`,
+      );
+      if (!confirmed) {
+        return;
+      }
+
+      setRoleChangeError(null);
+      setRoleChangeState((prev) => ({ ...prev, [user.userId]: true }));
+      setStaffMembers((prev) =>
+        sortStaffMembers(
+          prev.map((entry) =>
+            entry.userId === user.userId
+              ? {
+                  ...entry,
+                  role: nextRole,
+                }
+              : entry,
+          ),
+        ),
+      );
+
+      try {
+        await updateAdminUserRole(user.userId, nextRole);
+        await loadStaff();
+      } catch (error) {
+        const typedError = error instanceof Error ? error : new Error('Failed to update role.');
+        const message =
+          typedError instanceof AdminUserRoleUpdateError && typedError.issues.length > 0
+            ? typedError.issues[0]
+            : typedError.message;
+        setRoleChangeError(message);
+        setStaffMembers((prev) =>
+          sortStaffMembers(
+            prev.map((entry) =>
+              entry.userId === user.userId
+                ? {
+                    ...entry,
+                    role: user.role,
+                  }
+                : entry,
+            ),
+          ),
+        );
+      } finally {
+        setRoleChangeState((prev) => {
+          const next = { ...prev };
+          delete next[user.userId];
+          return next;
+        });
+      }
+    },
+    [loadStaff, sortStaffMembers],
+  );
 
   const deriveErrorMessage = useCallback((error: AdminUserProvisionError | Error): string => {
     if (error instanceof AdminUserProvisionError) {
@@ -187,6 +327,7 @@ const SuperAdminPage: React.FC = () => {
         setProvisionSummary(rest);
         setTemporarySecret(temporaryPassword ?? null);
         resetForm();
+        await loadStaff();
       } catch (error) {
         const typedError = error instanceof Error ? error : new Error('Unknown error');
         setFormError(deriveErrorMessage(typedError));
@@ -197,7 +338,7 @@ const SuperAdminPage: React.FC = () => {
         setIsSubmitting(false);
       }
     },
-    [deriveErrorMessage, formValues, resetForm, setProvisionSummary, setTemporarySecret, validateForm],
+    [deriveErrorMessage, formValues, loadStaff, resetForm, validateForm],
   );
 
   const dismissSecret = useCallback(() => {
@@ -205,6 +346,10 @@ const SuperAdminPage: React.FC = () => {
   }, []);
 
   const roleOptions = useMemo(() => ROLE_OPTIONS, []);
+  const dateFormatter = useMemo(
+    () => new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }),
+    [],
+  );
 
   if (isSessionLoading) {
     return null;
@@ -441,6 +586,117 @@ const SuperAdminPage: React.FC = () => {
             )}
           </section>
         )}
+
+        <section className="mt-8 rounded-lg bg-white p-8 shadow-md">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">Platform Users</h2>
+              <p className="mt-1 text-sm text-gray-600">
+                Manage moderator and analyst assignments. Role updates immediately revoke existing sessions.
+              </p>
+            </div>
+            <button
+              type="button"
+              className="rounded border border-gray-300 px-3 py-1 text-sm font-semibold text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60"
+              onClick={() => {
+                void loadStaff();
+              }}
+              disabled={isStaffLoading}
+            >
+              {isStaffLoading ? 'Refreshing…' : 'Refresh'}
+            </button>
+          </div>
+
+          {staffError && (
+            <div className="mt-4 rounded border border-red-500 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {staffError}
+            </div>
+          )}
+
+          {roleChangeError && (
+            <div className="mt-4 rounded border border-amber-500 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              {roleChangeError}
+            </div>
+          )}
+
+          <div className="mt-6 overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 text-sm">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left font-semibold text-gray-700">User</th>
+                  <th className="px-4 py-3 text-left font-semibold text-gray-700">Status</th>
+                  <th className="px-4 py-3 text-left font-semibold text-gray-700">Created</th>
+                  <th className="px-4 py-3 text-left font-semibold text-gray-700">Role</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {staffMembers.length === 0 && !isStaffLoading && !staffError ? (
+                  <tr>
+                    <td className="px-4 py-6 text-center text-sm text-gray-500" colSpan={4}>
+                      No staff members found.
+                    </td>
+                  </tr>
+                ) : null}
+                {isStaffLoading ? (
+                  <tr>
+                    <td className="px-4 py-6 text-center text-sm text-gray-500" colSpan={4}>
+                      Loading staff…
+                    </td>
+                  </tr>
+                ) : null}
+                {!isStaffLoading &&
+                  staffMembers.map((member) => {
+                    const isUpdating = roleChangeState[member.userId] === true;
+                    return (
+                      <tr key={member.userId} className={isUpdating ? 'bg-blue-50/40' : ''}>
+                        <td className="px-4 py-3">
+                          <div className="font-medium text-gray-900">{member.username}</div>
+                          <div className="text-xs text-gray-500">{member.email ?? 'No email on file'}</div>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-700">
+                          {member.mustRotatePassword ? (
+                            <span className="inline-flex items-center gap-2 rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
+                              <span className="size-2 rounded-full bg-amber-500" aria-hidden="true" />
+                              Rotation required
+                            </span>
+                          ) : (
+                            <span className="text-xs text-gray-500">
+                              {member.lastPasswordRotation
+                                ? `Rotated ${dateFormatter.format(new Date(member.lastPasswordRotation))}`
+                                : 'Rotation pending'}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-700">
+                          {dateFormatter.format(new Date(member.createdAt))}
+                        </td>
+                        <td className="px-4 py-3">
+                          <select
+                            className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
+                            value={member.role}
+                            onChange={(event) => {
+                              const nextRole = event.target.value as PlatformRole;
+                              void handleRoleSelection(member, nextRole);
+                            }}
+                            disabled={isUpdating}
+                          >
+                            {roleOptions.map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
+                          {isUpdating && (
+                            <p className="mt-1 text-xs text-blue-600">Updating…</p>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+              </tbody>
+            </table>
+          </div>
+        </section>
       </div>
     </div>
   );

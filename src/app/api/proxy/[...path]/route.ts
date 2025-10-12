@@ -115,6 +115,9 @@ const proxyHandler = async (request: NextRequest, paramsPromise: Promise<{ path:
   let backendResponse = await forward(request, accessToken, params.path, bodyBuffer);
 
   if (backendResponse.status !== 401) {
+    if (backendResponse.status === 405) {
+      console.error('[proxy] received 405 from backend', request.method, request.url);
+    }
     return toNextResponse(backendResponse);
   }
 
@@ -156,6 +159,8 @@ const proxyHandler = async (request: NextRequest, paramsPromise: Promise<{ path:
 export const GET = (request: NextRequest, context: { params: Promise<{ path: string[] }> }) =>
   proxyHandler(request, context.params);
 export const POST = (request: NextRequest, context: { params: Promise<{ path: string[] }> }) =>
+  proxyHandler(request, context.params);
+export const HEAD = (request: NextRequest, context: { params: Promise<{ path: string[] }> }) =>
   proxyHandler(request, context.params);
 export const PUT = (request: NextRequest, context: { params: Promise<{ path: string[] }> }) =>
   proxyHandler(request, context.params);

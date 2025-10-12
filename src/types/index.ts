@@ -50,6 +50,16 @@ export interface IAdminUserProvisionResult {
   requiresPasswordChange: boolean;
 }
 
+export interface IStaffUserSummary {
+  userId: string;
+  username: string;
+  email?: string;
+  role: PlatformRole;
+  mustRotatePassword: boolean;
+  lastPasswordRotation?: string;
+  createdAt: string;
+}
+
 export interface IPasswordRotationPayload {
   currentPassword: string;
   newPassword: string;
