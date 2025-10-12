@@ -6,7 +6,7 @@ import { Spline_Sans } from 'next/font/google';
 import './globals.css';
 import Header from '@/components/ui/Header';
 
-const HEADER_VISIBLE_ROUTES = ['/dashboard', '/analytics'];
+const HEADER_VISIBLE_ROUTES = ['/dashboard', '/analytics', '/super-admin'];
 
 const splineSans = Spline_Sans({ subsets: ['latin'], display: 'optional' });
 

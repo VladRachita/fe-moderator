@@ -80,9 +80,11 @@ export interface UserIdentity {
   clientId?: string;
   role?: string;
   identityKey?: string;
+  needsPasswordChange?: boolean;
   permissions?: {
     canModerate: boolean;
     canViewAnalytics: boolean;
+    canManageUsers: boolean;
   };
 }
 
@@ -97,9 +99,11 @@ export interface SessionDetails {
   scopes: string[];
   roles: string[];
   identityKey?: string;
+  needsPasswordChange?: boolean;
   permissions: {
     canModerate: boolean;
     canViewAnalytics: boolean;
+    canManageUsers: boolean;
   };
 }
 
@@ -110,7 +114,9 @@ const ANONYMOUS: SessionDetails = {
   permissions: {
     canModerate: false,
     canViewAnalytics: false,
+    canManageUsers: false,
   },
+  needsPasswordChange: false,
 };
 
 const ensureRoleList = (identity: UserIdentity | undefined, fallbackRoles: string[]): string[] => {
@@ -178,9 +184,11 @@ export const mapSessionDetails = (
     scopes,
     roles,
     identityKey: computeIdentityKey(identity, payload),
+    needsPasswordChange: Boolean(identity?.needsPasswordChange),
     permissions: {
       canModerate: identity?.permissions?.canModerate ?? canModerate,
       canViewAnalytics: identity?.permissions?.canViewAnalytics ?? canViewAnalytics,
+      canManageUsers: Boolean(identity?.permissions?.canManageUsers),
     },
   };
 };

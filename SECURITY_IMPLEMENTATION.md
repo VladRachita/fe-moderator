@@ -7,7 +7,7 @@ This document defines the **secure authentication and authorization design** for
 - **Frontend:** Next.js (TypeScript, BFF pattern)
 - **Backend:** Kotlin + Spring Boot (WebFlux)
 - **Database:** Existing production-grade DB (for users, clients, sessions, and audits)
-- **Users:** Internal only (moderators & analysts).  
+- **Users:** Internal only (moderators, analysts, and super admins).  
   _No self-registration or user creation via UI._
 
 ---
@@ -142,7 +142,9 @@ Add via Next.js middleware:
 - **PKCE + session handlers:** `/api/auth/login` performs the PKCE dance against `/oauth2/authorize`, `/api/auth/refresh` rotates credentials, and `/api/auth/logout` revokes refresh tokens before clearing cookies—matching sections A and B.
 - **Encrypted session storage:** The access token is stored only as AES-GCM encrypted cookie (`mod_access_token`) plus volatile in-memory state. The backend-issued `__Host-vsanity-refresh` cookie is forwarded untouched, keeping all tokens out of `localStorage` / readable cookies.
 - **Identity resolution via `/api/v1/me`:** After every login or refresh the BFF calls `/api/v1/me`, which now returns `{ authenticated, userId, clientId, role, identityKey, permissions }`. We persist only those fields in memory and drop legacy `scopes`/`roles` exposure to reduce data leakage.
-- **Permission-driven UI:** The frontend consumes `permissions.canModerate` / `.canViewAnalytics` exclusively for gating dashboards and actions. Pages never render raw scope or role strings, and identity switches (tracked by `identityKey`) purge cached moderator/analyst state before refetching.
+- **Permission-driven UI:** The frontend consumes `permissions.canModerate` / `.canViewAnalytics` / `.canManageUsers` exclusively for gating dashboards and actions (including the `/super-admin` console). Pages never render raw scope or role strings, and identity switches (tracked by `identityKey`) purge cached moderator/analyst state before refetching.
+- **Super-admin provisioning safeguards:** The `/super-admin` page requests the expanded `admin:users:*` scopes, validates moderator/analyst role selection, and calls the provision API through the BFF. Temporary passwords are rendered once per action (never stored in local/session storage), can be dismissed instantly, and UX copy reinforces immediate credential rotation.
+- **Password rotation enforcement:** Session payloads carry `needsPasswordChange`; any user flagged by the backend is redirected to `/account/password`, where the rotation flow enforces the shared complexity policy client-side before PATCHing `/api/v1/account/password`. Successful rotations refresh identity state before restoring dashboard access.
 - **Defence-in-depth proxy:** All backend traffic funnels through `/api/proxy/*`, which enforces CSRF via double-submit cookie, auto-refreshes access tokens on 401, strips hop-by-hop headers, and rehydrates session cookies only after the `/me` call succeeds.
 - **Security middleware:** `src/middleware.ts` injects HSTS, CSP, COOP/COEP/CORP, and guards protected routes (`/dashboard`, `/analytics`) to require a valid access cookie, satisfying section E.
 - **Coordinated logout:** A BroadcastChannel + storage fallback notifies every tab to wipe the volatile session, clear identity-scoped caches, and redirect to `/login` with informative messaging when logout or token revocation occurs.

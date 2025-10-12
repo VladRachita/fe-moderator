@@ -200,9 +200,11 @@ export const fetchUserIdentity = async (accessToken: string): Promise<IUserIdent
     clientId: payload.clientId || undefined,
     role: payload.role || undefined,
     identityKey: payload.identityKey || undefined,
+    needsPasswordChange: Boolean(payload.needsPasswordChange),
     permissions: {
       canModerate: Boolean(payload.permissions?.canModerate),
       canViewAnalytics: Boolean(payload.permissions?.canViewAnalytics),
+      canManageUsers: Boolean(payload.permissions?.canManageUsers),
     },
   };
 };

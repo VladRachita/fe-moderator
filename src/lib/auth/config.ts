@@ -1,4 +1,5 @@
-const DEFAULT_SCOPE = 'openid profile moderation:read moderation:write';
+const DEFAULT_SCOPE =
+  'openid profile moderation:read moderation:write analytics:read admin:users:read admin:users:write';
 
 export interface AuthConfig {
   authorizationEndpoint: string;

@@ -7,9 +7,11 @@ const anonymousSession = {
   authenticated: false,
   scopes: [] as string[],
   roles: [] as string[],
+  needsPasswordChange: false,
   permissions: {
     canModerate: false,
     canViewAnalytics: false,
+    canManageUsers: false,
   },
 };
 
