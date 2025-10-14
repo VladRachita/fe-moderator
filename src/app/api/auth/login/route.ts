@@ -44,7 +44,7 @@ export const POST = async (request: NextRequest) => {
   const password = extractString(body.password);
   const deviceId = extractString(body.deviceId);
   const returnTo = extractString(body.returnTo);
-  const sanitizedReturnTo = sanitizeReturnTo(returnTo);
+  const sanitizedReturnTo = returnTo ? sanitizeReturnTo(returnTo) : undefined;
 
   if (!email || !password) {
     return NextResponse.json({ error: 'missing_credentials' }, { status: 400 });
@@ -59,11 +59,18 @@ export const POST = async (request: NextRequest) => {
   const configuredScopes = scope.split(/\s+/).filter(Boolean);
   const deriveScopesForTarget = (scopesList: string[], target?: string): string[] => {
     if (!target) {
-      return scopesList;
+      const unique = new Set<string>([
+        ...scopesList.filter((item) => !item.includes(':')),
+        ...scopesList.filter((item) => item.startsWith('moderation:')),
+        ...scopesList.filter((item) => item.startsWith('analytics:')),
+        ...scopesList.filter((item) => item.startsWith('admin:')),
+      ]);
+      return Array.from(unique);
     }
     const baseScopes = scopesList.filter((item) => !item.includes(':'));
     const analyticsScopes = scopesList.filter((item) => item.startsWith('analytics:'));
     const moderationScopes = scopesList.filter((item) => item.startsWith('moderation:'));
+    const adminScopes = scopesList.filter((item) => item.startsWith('admin:'));
 
     if (target.startsWith('/analytics')) {
       const unique = new Set<string>([...baseScopes, ...analyticsScopes]);
@@ -71,12 +78,31 @@ export const POST = async (request: NextRequest) => {
     }
 
     if (target.startsWith('/dashboard')) {
-      const unique = new Set<string>([...baseScopes, ...moderationScopes, ...analyticsScopes]);
+      const unique = new Set<string>([
+        ...baseScopes,
+        ...moderationScopes,
+        ...analyticsScopes,
+      ]);
       return Array.from(unique);
     }
 
-    // For other destinations reuse full configured set so privileged routes keep working.
-    return scopesList;
+    if (target.startsWith('/super-admin') || target.startsWith('/admin')) {
+      const unique = new Set<string>([
+        ...baseScopes,
+        ...adminScopes,
+        ...moderationScopes,
+        ...analyticsScopes,
+      ]);
+      return Array.from(unique);
+    }
+
+    const unique = new Set<string>([
+      ...baseScopes,
+      ...moderationScopes,
+      ...analyticsScopes,
+      ...adminScopes,
+    ]);
+    return Array.from(unique);
   };
 
   const scopes = deriveScopesForTarget(configuredScopes, sanitizedReturnTo);
@@ -125,15 +151,34 @@ export const POST = async (request: NextRequest) => {
     const sessionDetails = mapSessionDetails(payload, identity);
 
     const hasAuthorizedView =
-      sessionDetails.permissions.canModerate || sessionDetails.permissions.canViewAnalytics;
+      sessionDetails.permissions.canModerate ||
+      sessionDetails.permissions.canViewAnalytics ||
+      sessionDetails.permissions.canManageUsers;
     if (!hasAuthorizedView) {
       const response = NextResponse.json({ error: 'authorization_failed' }, { status: 403 });
       response.headers.set('Cache-Control', 'no-store');
       return response;
     }
 
-    const defaultRedirect = sessionDetails.permissions.canModerate ? '/dashboard' : '/analytics';
-    const redirectDestination = sanitizedReturnTo ?? defaultRedirect;
+    const mustRotatePassword = Boolean(sessionDetails.needsPasswordChange);
+    let defaultRedirect = '/dashboard';
+    if (mustRotatePassword) {
+      defaultRedirect = '/account/password';
+    } else if (
+      !sessionDetails.permissions.canModerate &&
+      sessionDetails.permissions.canViewAnalytics
+    ) {
+      defaultRedirect = '/analytics';
+    } else if (
+      !sessionDetails.permissions.canModerate &&
+      !sessionDetails.permissions.canViewAnalytics &&
+      sessionDetails.permissions.canManageUsers
+    ) {
+      defaultRedirect = '/super-admin';
+    }
+    const redirectDestination = mustRotatePassword
+      ? '/account/password'
+      : sanitizedReturnTo ?? defaultRedirect;
 
     const response = NextResponse.json({
       redirect: redirectDestination,

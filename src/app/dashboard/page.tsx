@@ -20,7 +20,9 @@ const Page: React.FC = () => {
   const router = useRouter();
   const { session, isLoading: isSessionLoading, identityVersion } = useSession();
 
-  const canModerate = Boolean(session?.authenticated && session.permissions.canModerate);
+  const canModerate = Boolean(
+    session?.authenticated && !session?.needsPasswordChange && session.permissions.canModerate,
+  );
 
   useEffect(() => {
     const fetchVideos = async () => {
@@ -56,7 +58,15 @@ const Page: React.FC = () => {
       router.replace('/login?returnTo=/dashboard');
       return;
     }
+    if (session.needsPasswordChange) {
+      router.replace('/account/password');
+      return;
+    }
     if (!session.permissions.canModerate) {
+      if (session.permissions.canManageUsers) {
+        router.replace('/super-admin');
+        return;
+      }
       if (session.permissions.canViewAnalytics) {
         router.replace('/analytics');
         return;

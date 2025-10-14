@@ -17,8 +17,15 @@ const Header: React.FC = () => {
     setIsClient(true);
   }, []);
 
-  const isModerator = Boolean(session?.authenticated && session.permissions.canModerate);
-  const isAnalyst = Boolean(session?.authenticated && session.permissions.canViewAnalytics);
+  const isModerator = Boolean(
+    session?.authenticated && !session?.needsPasswordChange && session.permissions.canModerate,
+  );
+  const isAnalyst = Boolean(
+    session?.authenticated && !session?.needsPasswordChange && session.permissions.canViewAnalytics,
+  );
+  const isSuperAdmin = Boolean(
+    session?.authenticated && !session?.needsPasswordChange && session.permissions.canManageUsers,
+  );
 
   return (
     <header className="flex items-center justify-between whitespace-nowrap border-b border-gray-200 px-6 py-4">
@@ -50,6 +57,19 @@ const Header: React.FC = () => {
                 }`}
               >
                 Analytics
+              </span>
+            </Link>
+          )}
+          {isSuperAdmin && (
+            <Link href="/super-admin">
+              <span
+                className={`relative text-sm font-medium ${
+                  isClient && pathname.startsWith('/super-admin')
+                    ? "font-bold text-black after:absolute after:bottom-[-4px] after:left-0 after:h-0.5 after:w-full after:bg-black after:content-['']"
+                    : 'text-gray-500 hover:text-black'
+                }`}
+              >
+                Platform Users
               </span>
             </Link>
           )}

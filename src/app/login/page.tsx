@@ -3,6 +3,9 @@
 import React, { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
+const IDENTIFIER_PATTERN = /^[A-Za-z0-9._+-]+(?:@[A-Za-z0-9.-]+\.[A-Za-z]{2,})?$/;
+const IDENTIFIER_PATTERN_SOURCE = '^[A-Za-z0-9._+-]+(?:@[A-Za-z0-9.-]+\\.[A-Za-z]{2,})?$';
+
 const errorMessages: Record<string, string> = {
   missing_credentials: 'Enter both email and password to continue.',
   authentication_failed: 'Authentication failed. Check your credentials and try again.',
@@ -21,9 +24,10 @@ const infoMessages: Record<string, string> = {
 const LoginPage: React.FC = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
   const error = searchParams.get('error');
@@ -36,8 +40,15 @@ const LoginPage: React.FC = () => {
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setFormError(null);
-    if (!email || !password) {
+    const trimmedIdentifier = identifier.trim();
+    if (!trimmedIdentifier || !password) {
       setFormError(errorMessages.missing_credentials);
+      return;
+    }
+    if (!IDENTIFIER_PATTERN.test(trimmedIdentifier)) {
+      setFormError(
+        'Enter a valid email address or username (letters, numbers, ., _, -, +; include a domain when using @).',
+      );
       return;
     }
 
@@ -48,7 +59,7 @@ const LoginPage: React.FC = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password, returnTo }),
+        body: JSON.stringify({ email: trimmedIdentifier, password, returnTo }),
       });
 
       if (!response.ok) {
@@ -73,7 +84,7 @@ const LoginPage: React.FC = () => {
       <div className="w-full max-w-md rounded-lg bg-white p-8 shadow-md">
         <h1 className="mb-6 text-center text-3xl font-bold">Moderator Login</h1>
         <p className="mb-6 text-center text-sm text-gray-600">
-          Use your workstation credentials to start a moderated session.
+          Sign in with your work email address or username alongside your password to access the dashboards.
         </p>
         {infoBanner && (
           <div className="mb-4 rounded border border-blue-600 bg-blue-100 px-3 py-2 text-sm text-blue-800">
@@ -87,34 +98,47 @@ const LoginPage: React.FC = () => {
         )}
         <form className="space-y-4" onSubmit={handleSubmit}>
           <div>
-            <label className="mb-2 block text-sm font-semibold text-gray-700" htmlFor="email">
-              Email
+            <label className="mb-2 block text-sm font-semibold text-gray-700" htmlFor="identifier">
+              Email or Username
             </label>
             <input
-              id="email"
-              name="email"
-              type="email"
+              id="identifier"
+              name="identifier"
+              type="text"
               autoComplete="username"
               className="w-full rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
+              value={identifier}
+              onChange={(event) => setIdentifier(event.target.value)}
               required
+              pattern={IDENTIFIER_PATTERN_SOURCE}
+              inputMode="email"
+              title="Use letters, numbers, ., _, -, +, and include a domain when using @"
             />
           </div>
           <div>
             <label className="mb-2 block text-sm font-semibold text-gray-700" htmlFor="password">
               Password
             </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              className="w-full rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              required
-            />
+            <div className="relative">
+              <input
+                id="password"
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="current-password"
+                className="w-full rounded border border-gray-300 px-3 py-2 pr-16 focus:border-blue-500 focus:outline-none"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                required
+              />
+              <button
+                type="button"
+                className="absolute inset-y-0 right-0 mr-2 flex items-center rounded px-3 text-xs font-semibold text-blue-600 transition hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+                onClick={() => setShowPassword((value) => !value)}
+                aria-pressed={showPassword}
+              >
+                {showPassword ? 'Hide' : 'Show'}
+              </button>
+            </div>
           </div>
           <button
             type="submit"

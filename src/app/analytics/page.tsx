@@ -11,7 +11,7 @@ const AnalyticsPage: React.FC = () => {
   const router = useRouter();
   const { session, isLoading: isSessionLoading, identityVersion } = useSession();
   const canViewAnalytics = Boolean(
-    session?.authenticated && session.permissions.canViewAnalytics,
+    session?.authenticated && !session?.needsPasswordChange && session.permissions.canViewAnalytics,
   );
 
   useEffect(() => {
@@ -44,7 +44,15 @@ const AnalyticsPage: React.FC = () => {
       router.replace('/login?returnTo=/analytics');
       return;
     }
+    if (session.needsPasswordChange) {
+      router.replace('/account/password');
+      return;
+    }
     if (!session.permissions.canViewAnalytics) {
+      if (session.permissions.canManageUsers) {
+        router.replace('/super-admin');
+        return;
+      }
       if (session.permissions.canModerate) {
         router.replace('/dashboard');
         return;

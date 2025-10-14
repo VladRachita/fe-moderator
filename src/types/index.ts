@@ -32,6 +32,44 @@ export interface IAnalyticsSummary {
   pendingLast24hCount: number;
 }
 
+export type PlatformRole = 'MODERATOR' | 'ANALYST';
+
+export interface IAdminUserRequest {
+  username: string;
+  email: string;
+  role: PlatformRole;
+  temporaryPassword?: string;
+}
+
+export interface IAdminUserProvisionResult {
+  userId?: string;
+  username: string;
+  email: string;
+  role: PlatformRole;
+  temporaryPassword?: string;
+  requiresPasswordChange: boolean;
+}
+
+export interface IStaffUserSummary {
+  userId: string;
+  username: string;
+  email?: string;
+  role: PlatformRole;
+  mustRotatePassword: boolean;
+  lastPasswordRotation?: string;
+  createdAt: string;
+}
+
+export interface IPasswordRotationPayload {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword?: string;
+}
+
+export interface IPasswordRotationResult {
+  rotatedAt: string;
+}
+
 export interface IUserSession {
   authenticated: boolean;
   subject?: string;
@@ -44,9 +82,11 @@ export interface IUserSession {
   error?: string;
   scopes: string[];
   roles: string[];
+  needsPasswordChange?: boolean;
   permissions: {
     canModerate: boolean;
     canViewAnalytics: boolean;
+    canManageUsers: boolean;
   };
 }
 
@@ -56,8 +96,10 @@ export interface IUserIdentity {
   clientId?: string;
   role?: string;
   identityKey?: string;
+  needsPasswordChange?: boolean;
   permissions: {
     canModerate: boolean;
     canViewAnalytics: boolean;
+    canManageUsers: boolean;
   };
 }
