@@ -194,11 +194,15 @@ export const fetchUserIdentity = async (accessToken: string): Promise<IUserIdent
     Object.prototype.hasOwnProperty.call(payload, 'authenticated')
       ? Boolean(payload.authenticated)
       : true;
+  const identityRoles = Array.isArray(payload.roles)
+    ? payload.roles.filter((role): role is string => typeof role === 'string' && role.length > 0)
+    : undefined;
   return {
     authenticated: resolvedAuthenticated,
     userId: payload.userId || undefined,
     clientId: payload.clientId || undefined,
     role: payload.role || undefined,
+    roles: identityRoles,
     identityKey: payload.identityKey || undefined,
     needsPasswordChange: Boolean(payload.needsPasswordChange),
     permissions: {

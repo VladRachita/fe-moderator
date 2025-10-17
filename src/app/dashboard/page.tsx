@@ -98,6 +98,11 @@ const Page: React.FC = () => {
       comments: moderatedSource.comments,
       status,
       moderatedAt: new Date().toISOString(),
+      ownerId: moderatedSource.ownerId,
+      ownerDisplayName: moderatedSource.ownerDisplayName,
+      ownerEmail: moderatedSource.ownerEmail,
+      videoType: moderatedSource.videoType,
+      submittedAt: moderatedSource.submittedAt,
     };
 
     if (status === VideoStatus.APPROVED) {

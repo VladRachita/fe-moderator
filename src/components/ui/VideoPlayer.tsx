@@ -3,6 +3,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { IPendingVideo, VideoStatus } from '@/types';
 import { updateVideoStatus, addComment } from '@/services/video-service';
+import {
+  formatVideoTimestamp,
+  formatVideoVisibility,
+  resolveVideoOwner,
+} from '@/lib/video/format';
 import Comments from './Comments';
 
 const IconButton: React.FC<
@@ -159,6 +164,18 @@ const VideoPlayer: React.FC<IVideoPlayerProps> = ({ video: initialVideo, onStatu
     return null;
   }
 
+  const metaDetails = (() => {
+    const meta: string[] = [resolveVideoOwner(video)];
+    if (video.videoType) {
+      meta.push(formatVideoVisibility(video.videoType));
+    }
+    const submitted = formatVideoTimestamp(video.submittedAt);
+    if (submitted) {
+      meta.push(`Uploaded ${submitted}`);
+    }
+    return meta.join(' • ');
+  })();
+
   return (
     <div className="flex flex-1 flex-col overflow-y-auto">
       <div className="flex-1 p-8">
@@ -187,7 +204,7 @@ const VideoPlayer: React.FC<IVideoPlayerProps> = ({ video: initialVideo, onStatu
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-2xl font-bold">{video.title}</h3>
-              <p className="text-gray-500">Uploaded 3 hours ago</p>
+              <p className="text-gray-500">{metaDetails}</p>
             </div>
             <div className="flex items-center gap-3">
               <button onClick={handleReject} disabled={isUpdating || !hasWatched} className="flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-700 disabled:opacity-50">
