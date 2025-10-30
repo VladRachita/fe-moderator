@@ -8,6 +8,11 @@ export interface IComment {
 export interface IVideo {
   id: string;
   title: string;
+  ownerId?: string;
+  ownerDisplayName?: string;
+  ownerEmail?: string;
+  videoType?: VideoVisibility;
+  submittedAt?: string;
   comments?: IComment[];
 }
 
@@ -17,7 +22,7 @@ export interface IPendingVideo extends IVideo {
 
 export interface IModeratedVideo extends IVideo {
   status: VideoStatus;
-  moderatedAt: string;
+  moderatedAt?: string;
   moderator?: string;
 }
 
@@ -31,6 +36,8 @@ export interface IAnalyticsSummary {
   rejectedCount: number;
   pendingLast24hCount: number;
 }
+
+export type VideoVisibility = 'PUBLIC' | 'PRIVATE' | (string & {});
 
 export type PlatformRole = 'MODERATOR' | 'ANALYST';
 
@@ -95,6 +102,7 @@ export interface IUserIdentity {
   userId?: string;
   clientId?: string;
   role?: string;
+  roles?: string[];
   identityKey?: string;
   needsPasswordChange?: boolean;
   permissions: {

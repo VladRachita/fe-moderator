@@ -1,6 +1,13 @@
+'use client';
+
 import React from 'react';
 import Image from 'next/image';
 import { IPendingVideo } from '@/types';
+import {
+  formatVideoTimestamp,
+  formatVideoVisibility,
+  resolveVideoOwner,
+} from '@/lib/video/format';
 
 interface IVideoListProps {
   videos: IPendingVideo[];
@@ -30,6 +37,19 @@ const VideoList: React.FC<IVideoListProps> = ({ videos, selectedVideo, onSelectV
                 </div>
                 <div className="flex-1">
                   <p className="font-semibold">{video.title}</p>
+                  <p className="mt-1 text-xs text-gray-500">
+                    {(() => {
+                      const meta: string[] = [resolveVideoOwner(video)];
+                      if (video.videoType) {
+                        meta.push(formatVideoVisibility(video.videoType));
+                      }
+                      const uploaded = formatVideoTimestamp(video.submittedAt);
+                      if (uploaded) {
+                        meta.push(`Uploaded ${uploaded}`);
+                      }
+                      return meta.join(' • ');
+                    })()}
+                  </p>
                 </div>
               </div>
             ))

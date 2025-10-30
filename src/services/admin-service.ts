@@ -55,14 +55,25 @@ export class AdminUserListError extends AdminServiceError {
   }
 }
 
+const resolvePlatformRole = (value: unknown): PlatformRole | null => {
+  if (typeof value !== 'string') {
+    return null;
+  }
+  const normalized = value.trim().toUpperCase();
+  if (normalized === 'MODERATOR' || normalized === 'ROLE_MODERATOR') {
+    return 'MODERATOR';
+  }
+  if (normalized === 'ANALYST' || normalized === 'ROLE_ANALYST') {
+    return 'ANALYST';
+  }
+  return null;
+};
+
 const normalizeProvisionResponse = (
   payload: IAdminUserRequest,
   response: Record<string, unknown>,
 ): IAdminUserProvisionResult => {
-  const role =
-    typeof response.role === 'string' && (response.role === 'MODERATOR' || response.role === 'ANALYST')
-      ? (response.role as PlatformRole)
-      : payload.role;
+  const role = resolvePlatformRole(response.role) ?? payload.role;
   const temporaryPassword =
     typeof response.temporaryPassword === 'string' ? response.temporaryPassword : undefined;
   const requiresPasswordChange =
@@ -114,8 +125,8 @@ const normalizeStaffList = (payload: unknown): IStaffUserSummary[] => {
       const entry = item as Record<string, unknown>;
       const userId = typeof entry.userId === 'string' ? entry.userId : undefined;
       const username = typeof entry.username === 'string' ? entry.username : undefined;
-      const role = typeof entry.role === 'string' ? entry.role : undefined;
-      if (!userId || !username || (role !== 'MODERATOR' && role !== 'ANALYST')) {
+      const role = resolvePlatformRole(entry.role);
+      if (!userId || !username || !role) {
         return null;
       }
       return {
