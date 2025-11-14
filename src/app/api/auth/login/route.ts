@@ -57,55 +57,10 @@ export const POST = async (request: NextRequest) => {
   const redirectTarget = resolveRedirectUri(request.url, redirectUri, appUrl);
 
   const configuredScopes = scope.split(/\s+/).filter(Boolean);
-  const deriveScopesForTarget = (scopesList: string[], target?: string): string[] => {
-    if (!target) {
-      const unique = new Set<string>([
-        ...scopesList.filter((item) => !item.includes(':')),
-        ...scopesList.filter((item) => item.startsWith('moderation:')),
-        ...scopesList.filter((item) => item.startsWith('analytics:')),
-        ...scopesList.filter((item) => item.startsWith('admin:')),
-      ]);
-      return Array.from(unique);
-    }
-    const baseScopes = scopesList.filter((item) => !item.includes(':'));
-    const analyticsScopes = scopesList.filter((item) => item.startsWith('analytics:'));
-    const moderationScopes = scopesList.filter((item) => item.startsWith('moderation:'));
-    const adminScopes = scopesList.filter((item) => item.startsWith('admin:'));
 
-    if (target.startsWith('/analytics')) {
-      const unique = new Set<string>([...baseScopes, ...analyticsScopes]);
-      return Array.from(unique);
-    }
-
-    if (target.startsWith('/dashboard')) {
-      const unique = new Set<string>([
-        ...baseScopes,
-        ...moderationScopes,
-        ...analyticsScopes,
-      ]);
-      return Array.from(unique);
-    }
-
-    if (target.startsWith('/super-admin') || target.startsWith('/admin')) {
-      const unique = new Set<string>([
-        ...baseScopes,
-        ...adminScopes,
-        ...moderationScopes,
-        ...analyticsScopes,
-      ]);
-      return Array.from(unique);
-    }
-
-    const unique = new Set<string>([
-      ...baseScopes,
-      ...moderationScopes,
-      ...analyticsScopes,
-      ...adminScopes,
-    ]);
-    return Array.from(unique);
-  };
-
-  const scopes = deriveScopesForTarget(configuredScopes, sanitizedReturnTo);
+  // Always request all configured scopes to avoid mismatch when backend issues
+  // more scopes than requested (e.g., superadmin logging in via /dashboard)
+  const scopes = configuredScopes;
 
   try {
     const authorizeResponse = await authorizeUser({

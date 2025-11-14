@@ -111,3 +111,49 @@ export interface IUserIdentity {
     canManageUsers: boolean;
   };
 }
+
+export type BusinessCategory = 'RESTAURANT' | 'HOTEL';
+export type PriceRange = '$' | '$$' | '$$$' | '$$$$';
+export type ApplicationStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+export interface IBusinessHours {
+  monday: string;
+  tuesday: string;
+  wednesday: string;
+  thursday: string;
+  friday: string;
+  saturday: string;
+  sunday: string;
+}
+
+export interface IHostApplication {
+  applicationId: string;
+  userId: string;
+  username: string;
+  email: string;
+  status: ApplicationStatus;
+  businessName: string;
+  category: BusinessCategory;
+  businessAddress: string;
+  phoneNumber: string;
+  priceRange: PriceRange;
+  businessHours: IBusinessHours;
+  servicesOffered: string;
+  submittedAt: string;
+  reviewedBy?: string;
+  reviewedAt?: string;
+  reviewNotes?: string;
+}
+
+export interface IApplicationReviewRequest {
+  status: 'APPROVED' | 'REJECTED';
+  reviewNotes?: string;
+}
+
+export interface IApplicationsPage {
+  applications: IHostApplication[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+}
