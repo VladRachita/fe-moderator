@@ -925,10 +925,18 @@ const SuperAdminPage: React.FC = () => {
                               <div>
                                 <dt className="font-semibold text-gray-700">Business Hours</dt>
                                 <dd className="mt-1 space-y-1 text-gray-900">
-                                  {Object.entries(app.businessHours).map(([day, hours]) => (
-                                    <div key={day} className="flex justify-between">
-                                      <span className="capitalize">{day}:</span>
-                                      <span>{hours}</span>
+                                  {[
+                                    { key: 'monday', label: 'Monday' },
+                                    { key: 'tuesday', label: 'Tuesday' },
+                                    { key: 'wednesday', label: 'Wednesday' },
+                                    { key: 'thursday', label: 'Thursday' },
+                                    { key: 'friday', label: 'Friday' },
+                                    { key: 'saturday', label: 'Saturday' },
+                                    { key: 'sunday', label: 'Sunday' },
+                                  ].map(({ key, label }) => (
+                                    <div key={key} className="flex justify-between">
+                                      <span>{label}:</span>
+                                      <span>{app.businessHours[key as keyof typeof app.businessHours]}</span>
                                     </div>
                                   ))}
                                 </dd>

@@ -83,13 +83,13 @@ const normalizePriceRange = (value: unknown): PriceRange => {
 
 const normalizeBusinessHours = (value: unknown): IBusinessHours => {
   const defaultHours = {
-    monday: 'Closed',
-    tuesday: 'Closed',
-    wednesday: 'Closed',
-    thursday: 'Closed',
-    friday: 'Closed',
-    saturday: 'Closed',
-    sunday: 'Closed',
+    monday: 'CLOSED',
+    tuesday: 'CLOSED',
+    wednesday: 'CLOSED',
+    thursday: 'CLOSED',
+    friday: 'CLOSED',
+    saturday: 'CLOSED',
+    sunday: 'CLOSED',
   };
 
   if (typeof value !== 'object' || value === null) {
@@ -97,14 +97,26 @@ const normalizeBusinessHours = (value: unknown): IBusinessHours => {
   }
 
   const hours = value as Record<string, unknown>;
+
+  // Helper function to get hours for a day (handles both uppercase and lowercase day names)
+  const getHours = (dayLower: string, dayUpper: string): string => {
+    if (typeof hours[dayUpper] === 'string') {
+      return hours[dayUpper] as string;
+    }
+    if (typeof hours[dayLower] === 'string') {
+      return hours[dayLower] as string;
+    }
+    return 'CLOSED';
+  };
+
   return {
-    monday: typeof hours.monday === 'string' ? hours.monday : defaultHours.monday,
-    tuesday: typeof hours.tuesday === 'string' ? hours.tuesday : defaultHours.tuesday,
-    wednesday: typeof hours.wednesday === 'string' ? hours.wednesday : defaultHours.wednesday,
-    thursday: typeof hours.thursday === 'string' ? hours.thursday : defaultHours.thursday,
-    friday: typeof hours.friday === 'string' ? hours.friday : defaultHours.friday,
-    saturday: typeof hours.saturday === 'string' ? hours.saturday : defaultHours.saturday,
-    sunday: typeof hours.sunday === 'string' ? hours.sunday : defaultHours.sunday,
+    monday: getHours('monday', 'MONDAY'),
+    tuesday: getHours('tuesday', 'TUESDAY'),
+    wednesday: getHours('wednesday', 'WEDNESDAY'),
+    thursday: getHours('thursday', 'THURSDAY'),
+    friday: getHours('friday', 'FRIDAY'),
+    saturday: getHours('saturday', 'SATURDAY'),
+    sunday: getHours('sunday', 'SUNDAY'),
   };
 };
 
