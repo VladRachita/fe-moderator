@@ -162,7 +162,7 @@ export const listHostApplications = async (
   size: number = 20,
 ): Promise<IApplicationsPage> => {
   try {
-    const response = await apiClient.get('/api/v1/admin/business/applications', {
+    const response = await apiClient.get('/api/v1/admin/applications', {
       params: { status, page, size },
     });
 
@@ -200,7 +200,7 @@ export const reviewHostApplication = async (
 ): Promise<IHostApplication> => {
   try {
     const response = await apiClient.put(
-      `/api/v1/admin/business/applications/${applicationId}`,
+      `/api/v1/admin/applications/${applicationId}`,
       reviewRequest,
     );
 
