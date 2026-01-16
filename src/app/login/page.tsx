@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 const IDENTIFIER_PATTERN = /^[A-Za-z0-9._+-]+(?:@[A-Za-z0-9.-]+\.[A-Za-z]{2,})?$/;
@@ -21,7 +21,7 @@ const infoMessages: Record<string, string> = {
   logout_failed: 'We could not confirm the logout with the server. Sign in again to continue.',
 };
 
-const LoginPage: React.FC = () => {
+const LoginFormContent: React.FC = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [identifier, setIdentifier] = useState('');
@@ -80,74 +80,98 @@ const LoginPage: React.FC = () => {
   };
 
   return (
+    <>
+      <h1 className="mb-6 text-center text-3xl font-bold">Moderator Login</h1>
+      <p className="mb-6 text-center text-sm text-gray-600">
+        Sign in with your work email address or username alongside your password to access the dashboards.
+      </p>
+      {infoBanner && (
+        <div className="mb-4 rounded border border-blue-600 bg-blue-100 px-3 py-2 text-sm text-blue-800">
+          {infoBanner}
+        </div>
+      )}
+      {displayError && (
+        <div className="mb-4 rounded border border-red-600 bg-red-100 px-3 py-2 text-sm text-red-800">
+          {displayError}
+        </div>
+      )}
+      <form className="space-y-4" onSubmit={handleSubmit}>
+        <div>
+          <label className="mb-2 block text-sm font-semibold text-gray-700" htmlFor="identifier">
+            Email or Username
+          </label>
+          <input
+            id="identifier"
+            name="identifier"
+            type="text"
+            autoComplete="username"
+            className="w-full rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
+            value={identifier}
+            onChange={(event) => setIdentifier(event.target.value)}
+            required
+            pattern={IDENTIFIER_PATTERN_SOURCE}
+            inputMode="email"
+            title="Use letters, numbers, ., _, -, +, and include a domain when using @"
+          />
+        </div>
+        <div>
+          <label className="mb-2 block text-sm font-semibold text-gray-700" htmlFor="password">
+            Password
+          </label>
+          <div className="relative">
+            <input
+              id="password"
+              name="password"
+              type={showPassword ? 'text' : 'password'}
+              autoComplete="current-password"
+              className="w-full rounded border border-gray-300 px-3 py-2 pr-16 focus:border-blue-500 focus:outline-none"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              required
+            />
+            <button
+              type="button"
+              className="absolute inset-y-0 right-0 mr-2 flex items-center rounded px-3 text-xs font-semibold text-blue-600 transition hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+              onClick={() => setShowPassword((value) => !value)}
+              aria-pressed={showPassword}
+            >
+              {showPassword ? 'Hide' : 'Show'}
+            </button>
+          </div>
+        </div>
+        <button
+          type="submit"
+          className="w-full rounded bg-blue-600 px-4 py-2 font-semibold text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? 'Signing in…' : 'Sign in'}
+        </button>
+      </form>
+    </>
+  );
+};
+
+const LoginFormFallback: React.FC = () => (
+  <>
+    <h1 className="mb-6 text-center text-3xl font-bold">Moderator Login</h1>
+    <p className="mb-6 text-center text-sm text-gray-600">
+      Sign in with your work email address or username alongside your password to access the dashboards.
+    </p>
+    <div className="animate-pulse space-y-4">
+      <div className="h-10 rounded bg-gray-200" />
+      <div className="h-10 rounded bg-gray-200" />
+      <div className="h-10 rounded bg-gray-300" />
+    </div>
+  </>
+);
+
+const LoginPage: React.FC = () => {
+  return (
     <div className="flex min-h-screen items-center justify-center bg-gray-100">
       <div className="w-full max-w-md rounded-lg bg-white p-8 shadow-md">
-        <h1 className="mb-6 text-center text-3xl font-bold">Moderator Login</h1>
-        <p className="mb-6 text-center text-sm text-gray-600">
-          Sign in with your work email address or username alongside your password to access the dashboards.
-        </p>
-        {infoBanner && (
-          <div className="mb-4 rounded border border-blue-600 bg-blue-100 px-3 py-2 text-sm text-blue-800">
-            {infoBanner}
-          </div>
-        )}
-        {displayError && (
-          <div className="mb-4 rounded border border-red-600 bg-red-100 px-3 py-2 text-sm text-red-800">
-            {displayError}
-          </div>
-        )}
-        <form className="space-y-4" onSubmit={handleSubmit}>
-          <div>
-            <label className="mb-2 block text-sm font-semibold text-gray-700" htmlFor="identifier">
-              Email or Username
-            </label>
-            <input
-              id="identifier"
-              name="identifier"
-              type="text"
-              autoComplete="username"
-              className="w-full rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
-              value={identifier}
-              onChange={(event) => setIdentifier(event.target.value)}
-              required
-              pattern={IDENTIFIER_PATTERN_SOURCE}
-              inputMode="email"
-              title="Use letters, numbers, ., _, -, +, and include a domain when using @"
-            />
-          </div>
-          <div>
-            <label className="mb-2 block text-sm font-semibold text-gray-700" htmlFor="password">
-              Password
-            </label>
-            <div className="relative">
-              <input
-                id="password"
-                name="password"
-                type={showPassword ? 'text' : 'password'}
-                autoComplete="current-password"
-                className="w-full rounded border border-gray-300 px-3 py-2 pr-16 focus:border-blue-500 focus:outline-none"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                required
-              />
-              <button
-                type="button"
-                className="absolute inset-y-0 right-0 mr-2 flex items-center rounded px-3 text-xs font-semibold text-blue-600 transition hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
-                onClick={() => setShowPassword((value) => !value)}
-                aria-pressed={showPassword}
-              >
-                {showPassword ? 'Hide' : 'Show'}
-              </button>
-            </div>
-          </div>
-          <button
-            type="submit"
-            className="w-full rounded bg-blue-600 px-4 py-2 font-semibold text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? 'Signing in…' : 'Sign in'}
-          </button>
-        </form>
+        <Suspense fallback={<LoginFormFallback />}>
+          <LoginFormContent />
+        </Suspense>
       </div>
     </div>
   );

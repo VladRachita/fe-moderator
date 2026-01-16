@@ -42,7 +42,7 @@ const forward = async (
   request: NextRequest,
   accessToken: string,
   pathSegments: string[],
-  bodyBuffer?: Buffer,
+  bodyBuffer?: ArrayBuffer,
 ) => {
   const targetUrl = buildTargetUrl(request, pathSegments);
   const init: RequestInit = {
@@ -110,7 +110,7 @@ const proxyHandler = async (request: NextRequest, paramsPromise: Promise<{ path:
 
   const params = await paramsPromise;
   const bodyBuffer =
-    !isSafeMethod(request.method) && request.body ? Buffer.from(await request.arrayBuffer()) : undefined;
+    !isSafeMethod(request.method) && request.body ? await request.arrayBuffer() : undefined;
 
   let backendResponse = await forward(request, accessToken, params.path, bodyBuffer);
 

@@ -1,5 +1,6 @@
 export const COOKIE_NAMES = {
   accessToken: 'mod_access_token',
+  refreshToken: 'mod_refresh_token',
   sessionMeta: 'mod_session_meta',
   csrfToken: 'mod_csrf_token',
   oauthState: 'mod_oauth_state',

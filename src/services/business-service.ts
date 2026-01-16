@@ -168,7 +168,7 @@ export const listHostApplications = async (
 
     const data = response.data ?? {};
     const applications = Array.isArray(data.applications)
-      ? data.applications.map(normalizeApplication).filter((app): app is IHostApplication => app !== null)
+      ? data.applications.map(normalizeApplication).filter((app: IHostApplication | null): app is IHostApplication => app !== null)
       : [];
 
     return {

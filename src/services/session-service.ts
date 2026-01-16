@@ -26,8 +26,7 @@ export const getSession = async (): Promise<IUserSession> => {
     | null;
 
   if (!payload) {
-    const errorCode = payload?.error;
-    throw new SessionFetchError(response.status, errorCode);
+    throw new SessionFetchError(response.status);
   }
 
   if (response.status === 401) {
