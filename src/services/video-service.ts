@@ -1,15 +1,35 @@
 
+import axios from 'axios';
 import {
   IPendingVideo,
   IModeratedVideo,
   IComment,
-  IAnalyticsSummary,
   VideoStatus,
   VideoVisibility,
 } from '@/types';
 import apiClient from './api-client';
 
-const isProduction = process.env.NODE_ENV === 'production';
+export class VideoServiceError extends Error {
+  status: number;
+  code?: string;
+
+  constructor(message: string, status: number, code?: string) {
+    super(message);
+    this.name = 'VideoServiceError';
+    this.status = status;
+    this.code = code;
+  }
+}
+
+const wrapError = (error: unknown, fallback: string): VideoServiceError => {
+  if (axios.isAxiosError(error) && error.response) {
+    const data = (error.response.data ?? {}) as Record<string, unknown>;
+    const message = typeof data.message === 'string' ? data.message : fallback;
+    const code = typeof data.code === 'string' ? data.code : undefined;
+    return new VideoServiceError(message, error.response.status, code);
+  }
+  return new VideoServiceError(fallback, 500);
+};
 
 const coerceString = (value: unknown): string | undefined => {
   if (typeof value !== 'string') {
@@ -223,10 +243,7 @@ export const getPendingVideos = async (): Promise<IPendingVideo[]> => {
       .map((item) => normalizePendingVideo(item))
       .filter((video): video is IPendingVideo => Boolean(video));
   } catch (error) {
-    if (!isProduction) {
-      console.error('Failed to fetch pending videos:', error);
-    }
-    return [];
+    throw wrapError(error, 'Failed to fetch pending videos');
   }
 };
 
@@ -240,10 +257,7 @@ export const getModeratedVideos = async (status?: VideoStatus): Promise<IModerat
       .map((item) => normalizeModeratedVideo(item))
       .filter((video): video is IModeratedVideo => Boolean(video));
   } catch (error) {
-    if (!isProduction) {
-      console.error('Failed to fetch moderated videos:', error);
-    }
-    return [];
+    throw wrapError(error, 'Failed to fetch moderated videos');
   }
 };
 
@@ -252,10 +266,7 @@ export const getVideoById = async (id: string): Promise<IPendingVideo | null> =>
     const response = await apiClient.get(`/api/v1/videos/check/${id}`);
     return normalizePendingVideo(response.data) ?? null;
   } catch (error) {
-    if (!isProduction) {
-      console.error(`Failed to fetch video with id ${id}:`, error);
-    }
-    return null;
+    throw wrapError(error, `Failed to fetch video ${id}`);
   }
 };
 
@@ -271,10 +282,7 @@ export const addComment = async (id: string, comment: string): Promise<IComment 
     const normalizedComment = normalizeComments([payload]);
     return normalizedComment?.[0] ?? null;
   } catch (error) {
-    if (!isProduction) {
-      console.error(`Failed to add comment to video with id ${id}:`, error);
-    }
-    return null;
+    throw wrapError(error, 'Failed to add comment');
   }
 };
 
@@ -282,26 +290,6 @@ export const updateVideoStatus = async (id: string, status: VideoStatus): Promis
   try {
     await apiClient.put(`/api/v1/videos/check/${id}`, null, { params: { status } });
   } catch (error) {
-    if (!isProduction) {
-      console.error(`Failed to update video status for id ${id}:`, error);
-    }
-  }
-};
-
-export const getAnalyticsSummary = async (): Promise<IAnalyticsSummary> => {
-  try {
-    const response = await apiClient.get('/api/v1/analytics/summary');
-    const data = (response.data ?? {}) as Record<string, unknown>;
-    const approvedCount =
-      coerceNumber(data.approvedCount ?? data.approved_count ?? data.approved ?? data.totalApproved);
-    const rejectedCount =
-      coerceNumber(data.rejectedCount ?? data.rejected_count ?? data.rejected ?? data.totalRejected);
-    const pendingLast24hCount = coerceNumber(
-      data.pendingLast24hCount ?? data.pending_last_24h_count ?? data.pending ?? data.pending_last24,
-    );
-    return { approvedCount, rejectedCount, pendingLast24hCount };
-  } catch (error) {
-    console.error('Failed to fetch analytics summary:', error);
-    throw new Error('Failed to fetch analytics summary');
+    throw wrapError(error, `Failed to update video status`);
   }
 };

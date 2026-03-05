@@ -1,20 +1,22 @@
 import type { NextConfig } from "next";
 
+const mediaCdnHost = process.env.NEXT_PUBLIC_MEDIA_CDN_HOST;
+
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       {
         protocol: 'https',
         hostname: 'lh3.googleusercontent.com',
-        port: '',
-        pathname: '/**',
       },
-      {
-        protocol: 'http',
-        hostname: 'localhost',
-        port: '9000',
-        pathname: '/**',
-      },
+      // Production: use CDN/MinIO hostname from env
+      ...(mediaCdnHost
+        ? [{ protocol: 'https' as const, hostname: mediaCdnHost }]
+        : []),
+      // Dev fallback: local MinIO
+      ...(!mediaCdnHost
+        ? [{ protocol: 'http' as const, hostname: 'localhost', port: '9000', pathname: '/**' }]
+        : []),
     ],
   },
 };

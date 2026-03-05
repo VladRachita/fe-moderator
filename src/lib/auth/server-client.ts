@@ -41,15 +41,6 @@ export const authorizeUser = async (
   },
 ): Promise<AuthorizeResponse> => {
   const { authorizationEndpoint } = getAuthConfig();
-  console.log(
-    '[auth] authorize payload',
-    JSON.stringify({
-      clientId: body.clientId,
-      scope: body.scope,
-      redirectUri: body.redirectUri,
-      hasDeviceId: Boolean(body.deviceId),
-    }),
-  );
   const response = await fetch(authorizationEndpoint, {
     method: 'POST',
     headers: {

@@ -23,7 +23,7 @@ const applySecurityHeaders = (response: NextResponse) => {
     return response;
 };
 
-export const proxy = (request: NextRequest) => {
+export const middleware = (request: NextRequest) => {
     const { pathname } = request.nextUrl;
 
     if (protectedPaths.some((path) => pathname.startsWith(path))) {

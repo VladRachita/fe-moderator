@@ -1,12 +1,15 @@
-/* eslint-disable @next/next/no-page-custom-font */
-'use client';
-
-import { usePathname } from 'next/navigation';
+import type { Metadata } from 'next';
 import { Spline_Sans } from 'next/font/google';
 import './globals.css';
-import Header from '@/components/ui/Header';
+import HeaderWrapper from '@/components/ui/HeaderWrapper';
+import { validateEnv } from '@/lib/env-check';
 
-const HEADER_VISIBLE_ROUTES = ['/dashboard', '/analytics', '/super-admin'];
+validateEnv();
+
+export const metadata: Metadata = {
+  title: 'Moderator Dashboard',
+  description: 'Internal moderation panel',
+};
 
 const splineSans = Spline_Sans({ subsets: ['latin'], display: 'optional' });
 
@@ -15,9 +18,6 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const pathname = usePathname();
-  const showHeader = HEADER_VISIBLE_ROUTES.some((route) => pathname.startsWith(route));
-
   return (
     <html lang="en">
       <head>
@@ -29,7 +29,7 @@ export default function RootLayout({
         />
       </head>
       <body className={`${splineSans.className} bg-white text-black`}>
-        {showHeader && <Header />}
+        <HeaderWrapper />
         <main>{children}</main>
       </body>
     </html>

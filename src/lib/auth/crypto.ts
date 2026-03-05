@@ -1,4 +1,4 @@
-import { createCipheriv, createDecipheriv, createHmac, createHash, randomBytes } from 'crypto';
+import { createCipheriv, createDecipheriv, createHmac, createHash, randomBytes, timingSafeEqual } from 'crypto';
 
 const IV_LENGTH = 12;
 const AUTH_TAG_LENGTH = 16;
@@ -45,10 +45,13 @@ export const signValue = (value: string, secret: string): string => {
 };
 
 export const constantTimeEqual = (a: string, b: string): boolean => {
-  const bufferA = Buffer.from(a);
-  const bufferB = Buffer.from(b);
+  const bufferA = Buffer.from(a, 'utf8');
+  const bufferB = Buffer.from(b, 'utf8');
   if (bufferA.length !== bufferB.length) {
-    return false;
+    // Hash both to fixed-length to avoid timing leak on length
+    const hashA = createHash('sha256').update(bufferA).digest();
+    const hashB = createHash('sha256').update(bufferB).digest();
+    return timingSafeEqual(hashA, hashB);
   }
-  return bufferA.equals(bufferB);
+  return timingSafeEqual(bufferA, bufferB);
 };

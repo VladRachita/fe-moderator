@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 
 import VideoList from '@/components/ui/VideoList';
@@ -16,6 +16,7 @@ const Page: React.FC = () => {
   const [selectedVideo, setSelectedVideo] = useState<IPendingVideo | null>(null);
   const [approvedVideos, setApprovedVideos] = useState<IModeratedVideo[]>([]);
   const [rejectedVideos, setRejectedVideos] = useState<IModeratedVideo[]>([]);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   const router = useRouter();
   const { session, isLoading: isSessionLoading, identityVersion } = useSession();
@@ -24,22 +25,26 @@ const Page: React.FC = () => {
     session?.authenticated && !session?.needsPasswordChange && session.permissions.canModerate,
   );
 
-  useEffect(() => {
-    const fetchVideos = async () => {
-      try {
-        const pendingVideos = await getPendingVideos();
-        setVideos(pendingVideos);
-      } catch (error) {
-        console.error('Failed to load moderation queue', error);
-      }
-    };
+  const fetchVideos = useCallback(async () => {
+    try {
+      setFetchError(null);
+      const pendingVideos = await getPendingVideos();
+      setVideos(pendingVideos);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to load moderation queue';
+      setFetchError(message);
+      setVideos([]);
+    }
+  }, []);
 
+  useEffect(() => {
     if (canModerate) {
       void fetchVideos();
     } else {
       setVideos([]);
+      setFetchError(null);
     }
-  }, [canModerate, identityVersion]);
+  }, [canModerate, identityVersion, fetchVideos]);
 
   useEffect(() => {
     if (isSessionLoading) {
@@ -80,6 +85,7 @@ const Page: React.FC = () => {
     setSelectedVideo(null);
     setApprovedVideos([]);
     setRejectedVideos([]);
+    setFetchError(null);
   }, [identityVersion]);
 
   const handleStatusChange = (videoId: string, status: VideoStatus) => {
@@ -122,6 +128,17 @@ const Page: React.FC = () => {
 
   return (
     <div className="flex h-screen w-full flex-col">
+      {fetchError && (
+        <div className="flex items-center justify-between bg-red-50 border-b border-red-200 px-6 py-3">
+          <p className="text-sm text-red-700">{fetchError}</p>
+          <button
+            onClick={() => void fetchVideos()}
+            className="ml-4 rounded bg-red-600 px-3 py-1 text-xs font-medium text-white hover:bg-red-700"
+          >
+            Retry
+          </button>
+        </div>
+      )}
       <main className="flex flex-1 overflow-hidden">
         <VideoList videos={videos} onSelectVideo={setSelectedVideo} selectedVideo={selectedVideo} />
         <div className="flex flex-1 flex-col overflow-y-auto px-6 py-4">

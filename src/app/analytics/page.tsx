@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getAnalyticsSummary } from '@/services/video-service';
+import { getAnalyticsSummary } from '@/services/analytics-service';
 import { IAnalyticsSummary } from '@/types';
 import { useSession } from '@/lib/auth/use-session';
 

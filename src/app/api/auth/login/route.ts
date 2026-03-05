@@ -11,6 +11,7 @@ import {
 } from '@/lib/auth/server-client';
 import { issueCsrfCookie, setSessionCookies, getAccessTokenValue } from '@/lib/auth/tokens';
 import { decodeJwtPayload, mapSessionDetails } from '@/lib/auth/jwt';
+import { checkRateLimit, resolveClientIp } from '@/lib/auth/rate-limit';
 
 const parseBody = async (request: NextRequest) => {
   const contentType = request.headers.get('content-type') ?? '';
@@ -39,6 +40,16 @@ const extractString = (value: unknown): string | undefined => {
 };
 
 export const POST = async (request: NextRequest) => {
+  const clientIp = resolveClientIp(request);
+  const rateLimit = checkRateLimit(`login:${clientIp}`);
+  if (!rateLimit.allowed) {
+    const retryAfterSeconds = Math.ceil(rateLimit.retryAfterMs / 1000);
+    return NextResponse.json(
+      { error: 'rate_limit_exceeded' },
+      { status: 429, headers: { 'Retry-After': String(retryAfterSeconds) } },
+    );
+  }
+
   const body = await parseBody(request);
   const email = extractString(body.email ?? body.username);
   const password = extractString(body.password);
