@@ -1,5 +1,5 @@
 const DEFAULT_SCOPE =
-  'openid profile moderation:read moderation:write analytics:read admin:users:read admin:users:write';
+  'moderation:read moderation:write analytics:read admin:users:read admin:users:write';
 
 export interface AuthConfig {
   authorizationEndpoint: string;
@@ -31,7 +31,7 @@ export const getAuthConfig = (): AuthConfig => {
   const redirectUri = getEnv('AUTH_REDIRECT_URI');
   const scope = getEnv('AUTH_SCOPE') ?? DEFAULT_SCOPE;
   const cookieSecret = getRequiredEnv('AUTH_COOKIE_SECRET');
-  const appUrl = redirectUri ? undefined : getEnv('NEXT_PUBLIC_APP_URL');
+  const appUrl = redirectUri ? undefined : getEnv('APP_URL');
 
   const joinUrl = (path: string) => `${baseUrl.replace(/\/+$/, '')}${path}`;
 

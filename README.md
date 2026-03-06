@@ -10,11 +10,11 @@ Create an `.env.local` with the following values before running the app:
 AUTH_SERVER_BASE_URL=http://localhost:8080
 AUTH_CLIENT_ID=frontend-client
 AUTH_COOKIE_SECRET=dev-only-change-me
-AUTH_SCOPE=openid profile moderation:read moderation:write analytics:read
+AUTH_SCOPE=moderation:read moderation:write analytics:read admin:users:read admin:users:write
 BACKEND_API_BASE_URL=http://localhost:8080
 ```
 
-`AUTH_COOKIE_SECRET` must be at least 32 characters and unique per deployment. Override `AUTH_REDIRECT_URI` or `NEXT_PUBLIC_APP_URL` when hosting behind a reverse proxy.
+`AUTH_COOKIE_SECRET` must be at least 32 characters and unique per deployment. Override `AUTH_REDIRECT_URI` or `APP_URL` when hosting behind a reverse proxy.
 
 ## Development
 

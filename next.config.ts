@@ -1,6 +1,6 @@
 import type { NextConfig } from "next";
 
-const mediaCdnHost = process.env.NEXT_PUBLIC_MEDIA_CDN_HOST;
+const mediaCdnHost = process.env.MEDIA_CDN_HOST;
 
 const nextConfig: NextConfig = {
   images: {
