@@ -67,9 +67,9 @@ jobs:
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
-          username: deployer
+          username: ${{ secrets.VPS_HOST }}
           key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
-          port: 2222
+          port: ${{ secrets.VPS_PORT }}
           script: |
             set -e
             cd /opt/vsanity
