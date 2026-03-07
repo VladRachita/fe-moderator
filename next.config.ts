@@ -3,6 +3,7 @@ import type { NextConfig } from "next";
 const mediaCdnHost = process.env.MEDIA_CDN_HOST;
 
 const nextConfig: NextConfig = {
+  output: 'standalone',
   images: {
     remotePatterns: [
       {
