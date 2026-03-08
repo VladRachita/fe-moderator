@@ -11,6 +11,7 @@ export const COOKIE_NAMES = {
 export const COOKIE_MAX_AGE = {
   accessToken: 10 * 60, // 10 minutes
   refreshToken: 7 * 24 * 60 * 60, // 7 days (mirrors backend)
+  csrfToken: 60 * 60, // 1 hour (regenerated on refresh/login)
   oauthTransient: 5 * 60, // 5 minutes
 };
 

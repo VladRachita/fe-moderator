@@ -6,21 +6,14 @@
 
 ## 🔴 Critical — Must Fix Before Deploy
 
-### 1. Rename `src/proxy.ts` → `src/middleware.ts` ✅ Done
+### 1. Rename `src/proxy.ts` → `src/middleware.ts` → reverted back to `src/proxy.ts` ✅ Done
 
-Next.js only picks up middleware from `middleware.ts` at the project or `src/` root. Currently named `proxy.ts`, so **HSTS, CSP, X-Frame-Options, and route protection are not applied**.
+Next.js deprecated the `middleware` convention in favor of `proxy`. The file has been reverted to `src/proxy.ts` with `proxy` as the export name.
 
-- Rename `src/proxy.ts` → `src/middleware.ts`
-- Export the handler as `middleware` (not `proxy`)
-- Keep the existing `config` matcher export
-- Verify middleware runs on Vercel Edge Runtime (no Node.js-only APIs in middleware)
-
-**Resolution:**
-- Renamed `src/proxy.ts` → `src/middleware.ts`
-- Changed export from `proxy` to `middleware`
+- Reverted `src/middleware.ts` → `src/proxy.ts`
+- Changed export from `middleware` back to `proxy`
 - Kept existing `config` matcher unchanged
-- Verified: middleware uses only `NextRequest`/`NextResponse` and `request.cookies` — all Edge-compatible, no Node.js-only APIs
-- Build confirmed: `next build` output shows `ƒ Proxy (Middleware)` — Next.js now detects and applies the middleware
+- Verified: proxy uses only `NextRequest`/`NextResponse` and `request.cookies` — all Edge-compatible, no Node.js-only APIs
 
 ---
 

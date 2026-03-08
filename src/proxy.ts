@@ -4,11 +4,22 @@ import { COOKIE_NAMES } from '@/lib/auth/constants';
 const protectedPaths = ['/dashboard', '/analytics'];
 
 const mediaSrc = process.env.MEDIA_CDN_URL ?? 'http://localhost:9000';
+const isDev = process.env.NODE_ENV === 'development';
 
 const securityHeaders: Record<string, string> = {
     'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload',
-    'Content-Security-Policy':
-        `default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self' ${mediaSrc}; base-uri 'self'; frame-ancestors 'none'; object-src 'none'`,
+    'Content-Security-Policy': [
+        `default-src 'self'`,
+        `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
+        `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
+        `font-src 'self' https://fonts.gstatic.com`,
+        `img-src 'self' data: ${mediaSrc}`,
+        `media-src 'self' ${mediaSrc}`,
+        `connect-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com${isDev ? ' ws:' : ''}`,
+        `base-uri 'self'`,
+        `frame-ancestors 'none'`,
+        `object-src 'none'`,
+    ].join('; '),
     'X-Frame-Options': 'DENY',
     'X-Content-Type-Options': 'nosniff',
     'Referrer-Policy': 'strict-origin-when-cross-origin',
@@ -23,7 +34,7 @@ const applySecurityHeaders = (response: NextResponse) => {
     return response;
 };
 
-export const middleware = (request: NextRequest) => {
+export const proxy = (request: NextRequest) => {
     const { pathname } = request.nextUrl;
 
     if (protectedPaths.some((path) => pathname.startsWith(path))) {

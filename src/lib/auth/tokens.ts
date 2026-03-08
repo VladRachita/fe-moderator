@@ -116,7 +116,7 @@ export const issueCsrfCookie = (response: NextResponse, token: string) => {
   response.cookies.set({
     name: COOKIE_NAMES.csrfToken,
     value: token,
-    maxAge: COOKIE_MAX_AGE.refreshToken,
+    maxAge: COOKIE_MAX_AGE.csrfToken,
     ...csrfCookieOptions,
   });
 };

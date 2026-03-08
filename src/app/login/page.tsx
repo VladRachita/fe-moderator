@@ -13,6 +13,8 @@ const errorMessages: Record<string, string> = {
   refresh_failed: 'Your session has expired. Please sign in again.',
   session_expired: 'Session expired. Log in to continue.',
   state_mismatch: 'Security check failed. Please try again.',
+  rate_limit_exceeded: 'Too many login attempts. Please wait a few minutes and try again.',
+  invalid_input: 'Invalid input. Check your email and password length.',
   default: 'Unable to sign you in right now. Please try again.',
 };
 
@@ -111,6 +113,7 @@ const LoginFormContent: React.FC = () => {
             required
             pattern={IDENTIFIER_PATTERN_SOURCE}
             inputMode="email"
+            maxLength={254}
             title="Use letters, numbers, ., _, -, +, and include a domain when using @"
           />
         </div>
@@ -128,6 +131,7 @@ const LoginFormContent: React.FC = () => {
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               required
+              maxLength={128}
             />
             <button
               type="button"

@@ -13,6 +13,8 @@ const store = new Map<string, RateLimitEntry>();
 
 const DEFAULT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 const DEFAULT_MAX_ATTEMPTS = 10;
+const ACCOUNT_WINDOW_MS = 30 * 60 * 1000; // 30 minutes
+const ACCOUNT_MAX_ATTEMPTS = 5;
 const CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
 let lastCleanup = Date.now();
@@ -71,6 +73,27 @@ export const checkRateLimit = (
     remaining: maxAttempts - entry.timestamps.length,
     retryAfterMs: 0,
   };
+};
+
+/**
+ * Checks both per-IP and per-account rate limits.
+ * Returns blocked if either limit is exceeded.
+ * Per-account limiting prevents credential stuffing across many IPs.
+ */
+export const checkLoginRateLimits = (
+  clientIp: string,
+  identifier: string,
+): RateLimitResult => {
+  const ipResult = checkRateLimit(`login:${clientIp}`);
+  if (!ipResult.allowed) {
+    return ipResult;
+  }
+  const accountResult = checkRateLimit(
+    `login-account:${identifier.toLowerCase()}`,
+    ACCOUNT_MAX_ATTEMPTS,
+    ACCOUNT_WINDOW_MS,
+  );
+  return accountResult;
 };
 
 export const resolveClientIp = (request: Request): string => {

@@ -11,7 +11,12 @@ import {
 } from '@/lib/auth/server-client';
 import { issueCsrfCookie, setSessionCookies, getAccessTokenValue } from '@/lib/auth/tokens';
 import { decodeJwtPayload, mapSessionDetails } from '@/lib/auth/jwt';
-import { checkRateLimit, resolveClientIp } from '@/lib/auth/rate-limit';
+import { checkLoginRateLimits, resolveClientIp } from '@/lib/auth/rate-limit';
+import { constantTimeEqual } from '@/lib/auth/crypto';
+
+const MAX_IDENTIFIER_LENGTH = 254; // RFC 5321 max email length
+const MAX_PASSWORD_LENGTH = 128;
+const MAX_RETURN_TO_LENGTH = 2048;
 
 const parseBody = async (request: NextRequest) => {
   const contentType = request.headers.get('content-type') ?? '';
@@ -40,8 +45,26 @@ const extractString = (value: unknown): string | undefined => {
 };
 
 export const POST = async (request: NextRequest) => {
+  const body = await parseBody(request);
+  const email = extractString(body.email ?? body.username);
+  const password = extractString(body.password);
+  const deviceId = extractString(body.deviceId);
+  const returnTo = extractString(body.returnTo);
+
+  if (!email || !password) {
+    return NextResponse.json({ error: 'missing_credentials' }, { status: 400 });
+  }
+
+  if (
+    email.length > MAX_IDENTIFIER_LENGTH ||
+    password.length > MAX_PASSWORD_LENGTH ||
+    (returnTo && returnTo.length > MAX_RETURN_TO_LENGTH)
+  ) {
+    return NextResponse.json({ error: 'invalid_input' }, { status: 400 });
+  }
+
   const clientIp = resolveClientIp(request);
-  const rateLimit = checkRateLimit(`login:${clientIp}`);
+  const rateLimit = checkLoginRateLimits(clientIp, email);
   if (!rateLimit.allowed) {
     const retryAfterSeconds = Math.ceil(rateLimit.retryAfterMs / 1000);
     return NextResponse.json(
@@ -50,16 +73,7 @@ export const POST = async (request: NextRequest) => {
     );
   }
 
-  const body = await parseBody(request);
-  const email = extractString(body.email ?? body.username);
-  const password = extractString(body.password);
-  const deviceId = extractString(body.deviceId);
-  const returnTo = extractString(body.returnTo);
   const sanitizedReturnTo = returnTo ? sanitizeReturnTo(returnTo) : undefined;
-
-  if (!email || !password) {
-    return NextResponse.json({ error: 'missing_credentials' }, { status: 400 });
-  }
 
   const { clientId, scope, redirectUri, appUrl } = getAuthConfig();
   const verifier = createCodeVerifier();
@@ -86,7 +100,7 @@ export const POST = async (request: NextRequest) => {
       deviceId,
     });
 
-    if (authorizeResponse.state && authorizeResponse.state !== state) {
+    if (authorizeResponse.state && !constantTimeEqual(authorizeResponse.state, state)) {
       return NextResponse.json({ error: 'state_mismatch' }, { status: 400 });
     }
 
