@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Privacy Policy - VideoSanity',
-  description: 'Privacy policy for the VideoSanity moderation platform.',
+  title: 'Privacy Policy - merg.ro',
+  description: 'Privacy policy for the merg.ro moderation platform.',
 };
 
 const PrivacyPage: React.FC = () => {
@@ -16,7 +16,7 @@ const PrivacyPage: React.FC = () => {
       <section className="space-y-4">
         <h2 className="text-xl font-semibold text-black">1. Introduction</h2>
         <p className="leading-relaxed text-gray-700">
-          VideoSanity (&quot;we&quot;, &quot;us&quot;, or &quot;our&quot;) operates the content
+          merg.ro (&quot;we&quot;, &quot;us&quot;, or &quot;our&quot;) operates the content
           moderation platform accessible to authorized staff members. This Privacy Policy explains
           how we collect, use, store, and protect personal information when you use our platform.
         </p>

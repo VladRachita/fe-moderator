@@ -16,6 +16,11 @@ import {
   ApplicationListError,
   ApplicationReviewError,
 } from '@/services/business-service';
+import {
+  listReports,
+  reviewReport,
+  ReportServiceError,
+} from '@/services/report-service';
 import { useSession } from '@/lib/auth/use-session';
 import type {
   PlatformRole,
@@ -23,6 +28,8 @@ import type {
   IStaffUserSummary,
   IHostApplication,
   ApplicationStatus,
+  IReport,
+  ReportStatus,
 } from '@/types';
 import { validatePasswordPolicy } from '@/lib/password-policy';
 
@@ -79,6 +86,13 @@ const SuperAdminPage: React.FC = () => {
   const [reviewNotes, setReviewNotes] = useState('');
   const [reviewingState, setReviewingState] = useState<Record<string, boolean>>({});
   const [reviewError, setReviewError] = useState<string | null>(null);
+
+  // Report moderation state
+  const [reports, setReports] = useState<IReport[]>([]);
+  const [reportsLoading, setReportsLoading] = useState(false);
+  const [reportsError, setReportsError] = useState<string | null>(null);
+  const [reportActiveTab, setReportActiveTab] = useState<ReportStatus>('PENDING');
+  const [reviewingReportId, setReviewingReportId] = useState<string | null>(null);
 
   const roleOrder = useMemo(() => ({ MODERATOR: 0, ANALYST: 1 }), []);
 
@@ -225,6 +239,44 @@ const SuperAdminPage: React.FC = () => {
     }
     void loadApplications(activeTab);
   }, [isSessionLoading, canManageUsers, activeTab, identityVersion, loadApplications]);
+
+  const loadReports = useCallback(async () => {
+    if (!canManageUsers) return;
+    setReportsLoading(true);
+    setReportsError(null);
+    try {
+      const page = await listReports(reportActiveTab, 0, 50);
+      setReports(page.items);
+    } catch (error) {
+      if (error instanceof ReportServiceError) {
+        setReportsError(error.message);
+      } else {
+        setReportsError('Failed to load reports');
+      }
+    } finally {
+      setReportsLoading(false);
+    }
+  }, [canManageUsers, reportActiveTab]);
+
+  useEffect(() => {
+    loadReports();
+  }, [loadReports]);
+
+  const handleReviewReport = async (reportId: string, status: ReportStatus) => {
+    setReviewingReportId(reportId);
+    try {
+      await reviewReport(reportId, status);
+      setReports((prev) => prev.filter((r) => r.id !== reportId));
+    } catch (error) {
+      if (error instanceof ReportServiceError) {
+        setReportsError(error.message);
+      } else {
+        setReportsError('Failed to review report');
+      }
+    } finally {
+      setReviewingReportId(null);
+    }
+  };
 
   const resetForm = useCallback(() => {
     setFormValues({
@@ -1029,6 +1081,110 @@ const SuperAdminPage: React.FC = () => {
               </div>
             )}
           </div>
+        </section>
+
+        {/* ==================== REPORTS SECTION ==================== */}
+        <section style={{ marginTop: '3rem' }}>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>
+            Reports
+          </h2>
+
+          {/* Tab buttons */}
+          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+            {(['PENDING', 'REVIEWED', 'DISMISSED'] as ReportStatus[]).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setReportActiveTab(tab)}
+                style={{
+                  padding: '0.5rem 1rem',
+                  borderRadius: '0.375rem',
+                  border: '1px solid #d1d5db',
+                  backgroundColor: reportActiveTab === tab ? '#3b82f6' : '#ffffff',
+                  color: reportActiveTab === tab ? '#ffffff' : '#374151',
+                  cursor: 'pointer',
+                  fontWeight: reportActiveTab === tab ? 'bold' : 'normal',
+                }}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+
+          {reportsError && (
+            <div style={{ color: '#ef4444', marginBottom: '1rem' }}>{reportsError}</div>
+          )}
+
+          {reportsLoading ? (
+            <p>Loading reports...</p>
+          ) : reports.length === 0 ? (
+            <p style={{ color: '#6b7280' }}>No {reportActiveTab.toLowerCase()} reports.</p>
+          ) : (
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid #e5e7eb', textAlign: 'left' }}>
+                  <th style={{ padding: '0.75rem' }}>Reporter</th>
+                  <th style={{ padding: '0.75rem' }}>Type</th>
+                  <th style={{ padding: '0.75rem' }}>Target</th>
+                  <th style={{ padding: '0.75rem' }}>Reason</th>
+                  <th style={{ padding: '0.75rem' }}>Date</th>
+                  {reportActiveTab === 'PENDING' && (
+                    <th style={{ padding: '0.75rem' }}>Actions</th>
+                  )}
+                </tr>
+              </thead>
+              <tbody>
+                {reports.map((report) => (
+                  <tr key={report.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                    <td style={{ padding: '0.75rem' }}>{report.reporterUsername}</td>
+                    <td style={{ padding: '0.75rem' }}>{report.reportType}</td>
+                    <td style={{ padding: '0.75rem' }}>
+                      {report.reportType === 'VIDEO'
+                        ? report.targetVideoTitle || report.targetVideoId || '—'
+                        : report.targetUsername || report.targetUserId || '—'}
+                    </td>
+                    <td style={{ padding: '0.75rem' }}>{report.reason.replace(/_/g, ' ')}</td>
+                    <td style={{ padding: '0.75rem' }}>
+                      {new Date(report.createdAt).toLocaleDateString()}
+                    </td>
+                    {reportActiveTab === 'PENDING' && (
+                      <td style={{ padding: '0.75rem', display: 'flex', gap: '0.5rem' }}>
+                        <button
+                          onClick={() => handleReviewReport(report.id, 'REVIEWED')}
+                          disabled={reviewingReportId === report.id}
+                          style={{
+                            padding: '0.25rem 0.75rem',
+                            borderRadius: '0.25rem',
+                            border: 'none',
+                            backgroundColor: '#10b981',
+                            color: '#ffffff',
+                            cursor: reviewingReportId === report.id ? 'wait' : 'pointer',
+                            opacity: reviewingReportId === report.id ? 0.5 : 1,
+                          }}
+                        >
+                          Reviewed
+                        </button>
+                        <button
+                          onClick={() => handleReviewReport(report.id, 'DISMISSED')}
+                          disabled={reviewingReportId === report.id}
+                          style={{
+                            padding: '0.25rem 0.75rem',
+                            borderRadius: '0.25rem',
+                            border: '1px solid #d1d5db',
+                            backgroundColor: '#ffffff',
+                            color: '#374151',
+                            cursor: reviewingReportId === report.id ? 'wait' : 'pointer',
+                            opacity: reviewingReportId === report.id ? 0.5 : 1,
+                          }}
+                        >
+                          Dismiss
+                        </button>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </section>
       </div>
     </div>

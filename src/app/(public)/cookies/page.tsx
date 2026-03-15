@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Cookie Policy - VideoSanity',
-  description: 'Cookie policy for the VideoSanity moderation platform.',
+  title: 'Cookie Policy - merg.ro',
+  description: 'Cookie policy for the merg.ro moderation platform.',
 };
 
 const CookiesPage: React.FC = () => {

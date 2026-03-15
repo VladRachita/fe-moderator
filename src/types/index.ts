@@ -157,3 +157,31 @@ export interface IApplicationsPage {
   totalElements: number;
   totalPages: number;
 }
+
+export type ReportType = 'VIDEO' | 'USER';
+export type ReportStatus = 'PENDING' | 'REVIEWED' | 'DISMISSED';
+
+export interface IReport {
+  id: string;
+  reportType: ReportType;
+  reason: string;
+  description: string | null;
+  status: ReportStatus;
+  reporterUsername: string;
+  reporterId: string;
+  targetVideoId: string | null;
+  targetVideoTitle: string | null;
+  targetUserId: string | null;
+  targetUsername: string | null;
+  reviewedBy: string | null;
+  reviewNotes: string | null;
+  createdAt: string;
+  reviewedAt: string | null;
+}
+
+export interface IReportsPage {
+  items: IReport[];
+  page: number;
+  size: number;
+  hasNext: boolean;
+}

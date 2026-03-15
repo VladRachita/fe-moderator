@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'GDPR Compliance - VideoSanity',
-  description: 'GDPR compliance information for the VideoSanity moderation platform.',
+  title: 'GDPR Compliance - merg.ro',
+  description: 'GDPR compliance information for the merg.ro moderation platform.',
 };
 
 const GdprPage: React.FC = () => {
@@ -16,7 +16,7 @@ const GdprPage: React.FC = () => {
       <section className="space-y-4">
         <h2 className="text-xl font-semibold text-black">1. Our Commitment</h2>
         <p className="leading-relaxed text-gray-700">
-          VideoSanity is committed to protecting personal data in accordance with the General Data
+          merg.ro is committed to protecting personal data in accordance with the General Data
           Protection Regulation (EU) 2016/679 (&quot;GDPR&quot;). This page outlines how we comply
           with GDPR requirements for data processed through the moderation platform.
         </p>
