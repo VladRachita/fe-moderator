@@ -29,6 +29,12 @@ const Footer: React.FC = () => {
             >
               GDPR
             </Link>
+            <Link
+              href="/account-deletion"
+              className="text-sm text-gray-500 transition-colors hover:text-black"
+            >
+              Account Deletion
+            </Link>
           </nav>
         </div>
       </div>
