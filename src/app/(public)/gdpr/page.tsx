@@ -76,8 +76,11 @@ const GdprPage: React.FC = () => {
           </li>
         </ul>
         <p className="leading-relaxed text-gray-700">
-          To exercise any of these rights, contact your organization&apos;s data protection officer.
-          We will respond to valid requests within 30 days.
+          To exercise any of these rights, including requesting data deletion, contact us at{' '}
+          <a href="mailto:gdpr@merg.ro" className="text-blue-600 underline hover:text-blue-800">
+            gdpr@merg.ro
+          </a>
+          . We will respond to valid requests within 30 days.
         </p>
       </section>
 
@@ -130,8 +133,11 @@ const GdprPage: React.FC = () => {
         <h2 className="text-xl font-semibold text-black">8. Contact</h2>
         <p className="leading-relaxed text-gray-700">
           For GDPR-related inquiries, to exercise your data subject rights, or to report a concern,
-          please contact your organization&apos;s data protection officer or platform administrator.
-          You also have the right to lodge a complaint with your local supervisory authority.
+          please contact us at{' '}
+          <a href="mailto:gdpr@merg.ro" className="text-blue-600 underline hover:text-blue-800">
+            gdpr@merg.ro
+          </a>
+          . You also have the right to lodge a complaint with your local supervisory authority.
         </p>
       </section>
     </article>
