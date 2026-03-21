@@ -17,11 +17,23 @@ import { constantTimeEqual } from '@/lib/auth/crypto';
 const MAX_IDENTIFIER_LENGTH = 254; // RFC 5321 max email length
 const MAX_PASSWORD_LENGTH = 128;
 const MAX_RETURN_TO_LENGTH = 2048;
+const MAX_BODY_SIZE = 4096; // 4KB — login payload needs ~400 bytes
+const MAX_DEVICE_ID_LENGTH = 128;
+const IDENTIFIER_PATTERN = /^[A-Za-z0-9._+-]+(?:@[A-Za-z0-9.-]+\.[A-Za-z]{2,})?$/;
+const DEVICE_ID_PATTERN = /^[A-Za-z0-9._\-:]+$/;
 
 const parseBody = async (request: NextRequest) => {
+  const contentLength = Number(request.headers.get('content-length') ?? '0');
+  if (contentLength > MAX_BODY_SIZE) {
+    return {};
+  }
   const contentType = request.headers.get('content-type') ?? '';
   if (contentType.includes('application/json')) {
-    return (await request.json()) as Record<string, unknown>;
+    try {
+      return (await request.json()) as Record<string, unknown>;
+    } catch {
+      return {};
+    }
   }
   if (contentType.includes('application/x-www-form-urlencoded')) {
     const formData = await request.formData();
@@ -48,7 +60,11 @@ export const POST = async (request: NextRequest) => {
   const body = await parseBody(request);
   const email = extractString(body.email ?? body.username);
   const password = extractString(body.password);
-  const deviceId = extractString(body.deviceId);
+  const rawDeviceId = extractString(body.deviceId);
+  const deviceId =
+    rawDeviceId && rawDeviceId.length <= MAX_DEVICE_ID_LENGTH && DEVICE_ID_PATTERN.test(rawDeviceId)
+      ? rawDeviceId
+      : undefined;
   const returnTo = extractString(body.returnTo);
 
   if (!email || !password) {
@@ -60,6 +76,10 @@ export const POST = async (request: NextRequest) => {
     password.length > MAX_PASSWORD_LENGTH ||
     (returnTo && returnTo.length > MAX_RETURN_TO_LENGTH)
   ) {
+    return NextResponse.json({ error: 'invalid_input' }, { status: 400 });
+  }
+
+  if (!IDENTIFIER_PATTERN.test(email)) {
     return NextResponse.json({ error: 'invalid_input' }, { status: 400 });
   }
 

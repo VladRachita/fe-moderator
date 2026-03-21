@@ -9,6 +9,7 @@ import {
 } from '@/lib/auth/tokens';
 import { refreshTokens, fetchUserIdentity, BackendIdentityError } from '@/lib/auth/server-client';
 import { COOKIE_NAMES, CSRF_HEADER } from '@/lib/auth/constants';
+import { constantTimeEqual } from '@/lib/auth/crypto';
 
 const isSafeMethod = (method: string) => ['GET', 'HEAD', 'OPTIONS'].includes(method);
 
@@ -88,7 +89,7 @@ const ensureCsrf = (request: NextRequest): NextResponse | null => {
   const cookieToken = request.cookies.get(COOKIE_NAMES.csrfToken)?.value;
   const headerToken = request.headers.get(CSRF_HEADER);
 
-  if (!cookieToken || !headerToken || cookieToken !== headerToken) {
+  if (!cookieToken || !headerToken || !constantTimeEqual(cookieToken, headerToken)) {
     return NextResponse.json({ error: 'csrf_validation_failed' }, { status: 403 });
   }
 

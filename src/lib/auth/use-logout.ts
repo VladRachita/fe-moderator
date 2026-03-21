@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { emitSessionChange } from '@/lib/auth/session-events';
 import { broadcastLogout, type LogoutReason } from '@/lib/auth/logout-channel';
+import { COOKIE_NAMES, CSRF_HEADER } from '@/lib/auth/constants';
 
 interface LogoutControls {
   logout: () => Promise<void>;
@@ -21,9 +22,15 @@ export const useLogout = (forceLogout: (reason?: LogoutReason) => void): LogoutC
     setError(null);
     let redirectReason: LogoutReason = 'logout';
     try {
+      const csrfToken = document.cookie.match(new RegExp(`(?:^|; )${COOKIE_NAMES.csrfToken}=([^;]*)`))?.[1];
+      const headers: HeadersInit = {};
+      if (csrfToken) {
+        headers[CSRF_HEADER] = decodeURIComponent(csrfToken);
+      }
       const response = await fetch('/api/auth/logout', {
         method: 'POST',
         credentials: 'include',
+        headers,
       });
 
       if (!response.ok && response.status !== 401 && response.status !== 403) {

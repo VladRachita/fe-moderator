@@ -185,3 +185,62 @@ export interface IReportsPage {
   size: number;
   hasNext: boolean;
 }
+
+// ==================== ADMIN RESERVATION MONITORING ====================
+
+export type ReservationStatus = 'PENDING' | 'CONFIRMED' | 'REJECTED' | 'CANCELLED' | 'COMPLETED' | 'NO_SHOW';
+export type NotificationDeliveryStatus = 'ACKNOWLEDGED' | 'DELIVERED' | 'PENDING' | 'FAILED';
+export type NotificationType =
+  | 'RESERVATION_CREATED'
+  | 'RESERVATION_CONFIRMED'
+  | 'RESERVATION_REJECTED'
+  | 'RESERVATION_CANCELLED_BY_CUSTOMER'
+  | 'RESERVATION_CANCELLED_BY_HOST'
+  | 'RESERVATION_REMINDER'
+  | 'RESERVATION_EDITED';
+
+export interface IAdminReservationNotification {
+  id: string;
+  type: NotificationType;
+  userId: string;
+  title: string;
+  createdAt: string;
+  deliveredAt: string | null;
+  acknowledgedAt: string | null;
+  retryCount: number;
+  lastRetryAt: string | null;
+  deliveryStatus: NotificationDeliveryStatus;
+}
+
+export interface IAdminReservation {
+  id: string;
+  customerId: string;
+  hostId: string;
+  businessName: string;
+  businessType: BusinessCategory;
+  status: ReservationStatus;
+  reservationDate: string;
+  reservationTime: string;
+  contactName: string;
+  contactEmail: string;
+  isEdited: boolean;
+  editedAt: string | null;
+  createdAt: string;
+  updatedAt: string | null;
+  notifications: IAdminReservationNotification[];
+}
+
+export interface IAdminReservationStats {
+  pendingCount: number;
+  confirmedCount: number;
+  editedCount: number;
+  totalCount: number;
+}
+
+export interface IAdminReservationsPage {
+  reservations: IAdminReservation[];
+  page: number;
+  size: number;
+  hasNext: boolean;
+  stats: IAdminReservationStats;
+}

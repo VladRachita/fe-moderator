@@ -16,16 +16,17 @@ const DEFAULT_MAX_ATTEMPTS = 10;
 const ACCOUNT_WINDOW_MS = 30 * 60 * 1000; // 30 minutes
 const ACCOUNT_MAX_ATTEMPTS = 5;
 const CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+const MAX_WINDOW_MS = Math.max(DEFAULT_WINDOW_MS, ACCOUNT_WINDOW_MS);
 
 let lastCleanup = Date.now();
 
-const cleanup = (windowMs: number) => {
+const cleanup = () => {
   const now = Date.now();
   if (now - lastCleanup < CLEANUP_INTERVAL_MS) {
     return;
   }
   lastCleanup = now;
-  const cutoff = now - windowMs;
+  const cutoff = now - MAX_WINDOW_MS;
   for (const [key, entry] of store) {
     entry.timestamps = entry.timestamps.filter((ts) => ts > cutoff);
     if (entry.timestamps.length === 0) {
@@ -46,7 +47,7 @@ export const checkRateLimit = (
   windowMs = DEFAULT_WINDOW_MS,
 ): RateLimitResult => {
   const now = Date.now();
-  cleanup(windowMs);
+  cleanup();
 
   const cutoff = now - windowMs;
   let entry = store.get(identifier);
@@ -100,10 +101,12 @@ export const resolveClientIp = (request: Request): string => {
   const headers = request.headers;
   const forwarded = headers.get('x-forwarded-for');
   if (forwarded) {
-    // First IP in the chain is the original client
-    const first = forwarded.split(',')[0]?.trim();
-    if (first) {
-      return first;
+    // Last IP is the one appended by the trusted reverse proxy (Vercel/Cloudflare/nginx)
+    // — the client cannot spoof this position since proxies append, not prepend
+    const parts = forwarded.split(',').map((s) => s.trim()).filter(Boolean);
+    const clientIp = parts[parts.length - 1];
+    if (clientIp) {
+      return clientIp;
     }
   }
   return headers.get('x-real-ip') ?? '127.0.0.1';

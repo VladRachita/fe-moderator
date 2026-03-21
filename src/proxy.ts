@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { COOKIE_NAMES } from '@/lib/auth/constants';
 
-const protectedPaths = ['/dashboard', '/analytics'];
+const protectedPaths = ['/dashboard', '/analytics', '/super-admin', '/account'];
 
 const mediaSrc = process.env.MEDIA_CDN_URL ?? 'http://localhost:9000';
 const isDev = process.env.NODE_ENV === 'development';
@@ -19,6 +19,7 @@ const securityHeaders: Record<string, string> = {
         `base-uri 'self'`,
         `frame-ancestors 'none'`,
         `object-src 'none'`,
+        `form-action 'self'`,
     ].join('; '),
     'X-Frame-Options': 'DENY',
     'X-Content-Type-Options': 'nosniff',
