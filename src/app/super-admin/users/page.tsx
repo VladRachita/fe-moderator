@@ -6,6 +6,8 @@ import {
   createAdminUser,
   listAdminUsers,
   updateAdminUserRole,
+  setLoginCode,
+  removeLoginCode,
   AdminUserProvisionError,
   AdminUserRoleUpdateError,
   AdminUserListError,
@@ -30,6 +32,7 @@ interface FormValues {
   email: string;
   role: PlatformRole;
   temporaryPassword: string;
+  loginCode: string;
 }
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -46,6 +49,7 @@ const UserManagementPage: React.FC = () => {
     email: '',
     role: 'MODERATOR',
     temporaryPassword: '',
+    loginCode: '',
   });
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof FormValues, string>>>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -61,6 +65,8 @@ const UserManagementPage: React.FC = () => {
   const [staffError, setStaffError] = useState<string | null>(null);
   const [roleChangeState, setRoleChangeState] = useState<Record<string, boolean>>({});
   const [roleChangeError, setRoleChangeError] = useState<string | null>(null);
+  const [loginCodeAction, setLoginCodeAction] = useState<Record<string, boolean>>({});
+  const [loginCodePrompt, setLoginCodePrompt] = useState<{ userId: string; value: string } | null>(null);
 
   const roleOrder = useMemo(() => ({ MODERATOR: 0, ANALYST: 1 }), []);
 
@@ -142,6 +148,7 @@ const UserManagementPage: React.FC = () => {
       email: '',
       role: 'MODERATOR',
       temporaryPassword: '',
+      loginCode: '',
     });
     setShowTemporaryPassword(false);
   }, []);
@@ -169,6 +176,11 @@ const UserManagementPage: React.FC = () => {
     const passwordError = validatePasswordPolicy(formValues.temporaryPassword, { allowEmpty: true });
     if (passwordError) {
       nextErrors.temporaryPassword = passwordError;
+    }
+
+    const trimmedLoginCode = formValues.loginCode.trim();
+    if (trimmedLoginCode && !/^[A-Za-z0-9]{6,12}$/.test(trimmedLoginCode)) {
+      nextErrors.loginCode = 'Login code must be 6-12 alphanumeric characters.';
     }
 
     setFieldErrors(nextErrors);
@@ -290,6 +302,9 @@ const UserManagementPage: React.FC = () => {
         role: formValues.role,
         ...(formValues.temporaryPassword.trim()
           ? { temporaryPassword: formValues.temporaryPassword.trim() }
+          : {}),
+        ...(formValues.loginCode.trim()
+          ? { loginCode: formValues.loginCode.trim() }
           : {}),
       };
 
@@ -427,6 +442,33 @@ const UserManagementPage: React.FC = () => {
             </div>
             {fieldErrors.temporaryPassword && (
               <p className="mt-2 text-xs text-red-600">{fieldErrors.temporaryPassword}</p>
+            )}
+          </div>
+
+          <div className="md:col-span-1">
+            <label
+              className="mb-2 block text-sm font-medium text-gray-700"
+              htmlFor="loginCode"
+            >
+              Login Code (optional 2FA)
+            </label>
+            <input
+              id="loginCode"
+              name="loginCode"
+              type="text"
+              autoComplete="off"
+              className={`w-full rounded border px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
+                fieldErrors.loginCode
+                  ? 'border-red-500 focus:ring-red-400'
+                  : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
+              }`}
+              value={formValues.loginCode}
+              onChange={(event) => handleChange('loginCode', event.target.value)}
+              placeholder="6-12 alphanumeric characters"
+              maxLength={12}
+            />
+            {fieldErrors.loginCode && (
+              <p className="mt-2 text-xs text-red-600">{fieldErrors.loginCode}</p>
             )}
           </div>
         </div>
@@ -580,6 +622,7 @@ const UserManagementPage: React.FC = () => {
               <tr>
                 <th className="px-4 py-3 text-left font-semibold text-gray-700">User</th>
                 <th className="px-4 py-3 text-left font-semibold text-gray-700">Status</th>
+                <th className="px-4 py-3 text-left font-semibold text-gray-700">Login Code</th>
                 <th className="px-4 py-3 text-left font-semibold text-gray-700">Created</th>
                 <th className="px-4 py-3 text-left font-semibold text-gray-700">Role</th>
               </tr>
@@ -587,14 +630,14 @@ const UserManagementPage: React.FC = () => {
             <tbody className="divide-y divide-gray-200">
               {staffMembers.length === 0 && !isStaffLoading && !staffError ? (
                 <tr>
-                  <td className="px-4 py-6 text-center text-sm text-gray-500" colSpan={4}>
+                  <td className="px-4 py-6 text-center text-sm text-gray-500" colSpan={5}>
                     No staff members found.
                   </td>
                 </tr>
               ) : null}
               {isStaffLoading ? (
                 <tr>
-                  <td className="px-4 py-6 text-center text-sm text-gray-500" colSpan={4}>
+                  <td className="px-4 py-6 text-center text-sm text-gray-500" colSpan={5}>
                     Loading staff&hellip;
                   </td>
                 </tr>
@@ -620,6 +663,83 @@ const UserManagementPage: React.FC = () => {
                               ? `Rotated ${dateFormatter.format(new Date(member.lastPasswordRotation))}`
                               : 'Rotation pending'}
                           </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-sm">
+                        {loginCodeAction[member.userId] ? (
+                          <span className="text-xs text-blue-600">Updating&hellip;</span>
+                        ) : loginCodePrompt?.userId === member.userId ? (
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="text"
+                              className="w-28 rounded border border-gray-300 px-2 py-1 text-xs focus:border-blue-500 focus:outline-none"
+                              value={loginCodePrompt.value}
+                              onChange={(e) => setLoginCodePrompt({ userId: member.userId, value: e.target.value })}
+                              placeholder="6-12 chars"
+                              maxLength={12}
+                              autoFocus
+                            />
+                            <button
+                              type="button"
+                              className="rounded bg-blue-600 px-2 py-1 text-xs font-semibold text-white hover:bg-blue-700"
+                              onClick={async () => {
+                                const code = loginCodePrompt.value.trim();
+                                if (!/^[A-Za-z0-9]{6,12}$/.test(code)) return;
+                                setLoginCodeAction((p) => ({ ...p, [member.userId]: true }));
+                                setLoginCodePrompt(null);
+                                try {
+                                  await setLoginCode(member.userId, code);
+                                  await loadStaff();
+                                } catch { /* handled by loadStaff */ }
+                                setLoginCodeAction((p) => { const n = { ...p }; delete n[member.userId]; return n; });
+                              }}
+                            >
+                              Save
+                            </button>
+                            <button
+                              type="button"
+                              className="text-xs text-gray-500 hover:text-gray-700"
+                              onClick={() => setLoginCodePrompt(null)}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : member.hasLoginCode ? (
+                          <div className="flex items-center gap-2">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-800">
+                              Active
+                            </span>
+                            <button
+                              type="button"
+                              className="text-xs text-red-600 hover:text-red-800"
+                              onClick={async () => {
+                                if (!window.confirm(`Remove login code for ${member.username}?`)) return;
+                                setLoginCodeAction((p) => ({ ...p, [member.userId]: true }));
+                                try {
+                                  await removeLoginCode(member.userId);
+                                  await loadStaff();
+                                } catch { /* handled by loadStaff */ }
+                                setLoginCodeAction((p) => { const n = { ...p }; delete n[member.userId]; return n; });
+                              }}
+                            >
+                              Remove
+                            </button>
+                            <button
+                              type="button"
+                              className="text-xs text-blue-600 hover:text-blue-800"
+                              onClick={() => setLoginCodePrompt({ userId: member.userId, value: '' })}
+                            >
+                              Change
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            className="text-xs font-semibold text-blue-600 hover:text-blue-800"
+                            onClick={() => setLoginCodePrompt({ userId: member.userId, value: '' })}
+                          >
+                            Set Code
+                          </button>
                         )}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-700">

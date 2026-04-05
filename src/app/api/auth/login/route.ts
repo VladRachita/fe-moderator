@@ -7,6 +7,8 @@ import {
   authorizeUser,
   exchangeAuthorizationCode,
   fetchUserIdentity,
+  verifyLoginCode,
+  revokeTokensByValue,
   BackendIdentityError,
 } from '@/lib/auth/server-client';
 import { issueCsrfCookie, setSessionCookies, getAccessTokenValue } from '@/lib/auth/tokens';
@@ -21,6 +23,8 @@ const MAX_BODY_SIZE = 4096; // 4KB — login payload needs ~400 bytes
 const MAX_DEVICE_ID_LENGTH = 128;
 const IDENTIFIER_PATTERN = /^[A-Za-z0-9._+-]+(?:@[A-Za-z0-9.-]+\.[A-Za-z]{2,})?$/;
 const DEVICE_ID_PATTERN = /^[A-Za-z0-9._\-:]+$/;
+const LOGIN_CODE_PATTERN = /^[A-Za-z0-9]{6,12}$/;
+const MAX_LOGIN_CODE_LENGTH = 12;
 
 const parseBody = async (request: NextRequest) => {
   const contentLength = Number(request.headers.get('content-length') ?? '0');
@@ -65,6 +69,14 @@ export const POST = async (request: NextRequest) => {
     rawDeviceId && rawDeviceId.length <= MAX_DEVICE_ID_LENGTH && DEVICE_ID_PATTERN.test(rawDeviceId)
       ? rawDeviceId
       : undefined;
+  const rawLoginCode = extractString(body.loginCode);
+  const loginCode =
+    rawLoginCode && rawLoginCode.length <= MAX_LOGIN_CODE_LENGTH && LOGIN_CODE_PATTERN.test(rawLoginCode)
+      ? rawLoginCode
+      : undefined;
+  if (rawLoginCode && !loginCode) {
+    return NextResponse.json({ error: 'invalid_code' }, { status: 400 });
+  }
   const returnTo = extractString(body.returnTo);
 
   if (!email || !password) {
@@ -158,6 +170,31 @@ export const POST = async (request: NextRequest) => {
       const response = NextResponse.json({ error: 'authorization_failed' }, { status: 403 });
       response.headers.set('Cache-Control', 'no-store');
       return response;
+    }
+
+    if (identity.loginCodeRequired) {
+      const rawRefreshToken = tokens.refreshToken ?? tokens.refresh_token;
+
+      if (!loginCode) {
+        if (rawRefreshToken) revokeTokensByValue(rawRefreshToken).catch(() => {});
+        const response = NextResponse.json({ error: 'login_code_required' }, { status: 403 });
+        response.headers.set('Cache-Control', 'no-store');
+        return response;
+      }
+      try {
+        const codeValid = await verifyLoginCode(accessToken, loginCode);
+        if (!codeValid) {
+          if (rawRefreshToken) revokeTokensByValue(rawRefreshToken).catch(() => {});
+          const response = NextResponse.json({ error: 'invalid_code' }, { status: 401 });
+          response.headers.set('Cache-Control', 'no-store');
+          return response;
+        }
+      } catch {
+        if (rawRefreshToken) revokeTokensByValue(rawRefreshToken).catch(() => {});
+        const response = NextResponse.json({ error: 'verification_failed' }, { status: 502 });
+        response.headers.set('Cache-Control', 'no-store');
+        return response;
+      }
     }
 
     const mustRotatePassword = Boolean(sessionDetails.needsPasswordChange);

@@ -46,6 +46,7 @@ export interface IAdminUserRequest {
   email: string;
   role: PlatformRole;
   temporaryPassword?: string;
+  loginCode?: string;
 }
 
 export interface IAdminUserProvisionResult {
@@ -55,6 +56,7 @@ export interface IAdminUserProvisionResult {
   role: PlatformRole;
   temporaryPassword?: string;
   requiresPasswordChange: boolean;
+  hasLoginCode: boolean;
 }
 
 export interface IStaffUserSummary {
@@ -65,6 +67,7 @@ export interface IStaffUserSummary {
   mustRotatePassword: boolean;
   lastPasswordRotation?: string;
   createdAt: string;
+  hasLoginCode: boolean;
 }
 
 export interface IPasswordRotationPayload {
@@ -105,6 +108,7 @@ export interface IUserIdentity {
   roles?: string[];
   identityKey?: string;
   needsPasswordChange?: boolean;
+  loginCodeRequired?: boolean;
   permissions: {
     canModerate: boolean;
     canViewAnalytics: boolean;
@@ -197,7 +201,9 @@ export type NotificationType =
   | 'RESERVATION_CANCELLED_BY_CUSTOMER'
   | 'RESERVATION_CANCELLED_BY_HOST'
   | 'RESERVATION_REMINDER'
-  | 'RESERVATION_EDITED';
+  | 'RESERVATION_EDITED'
+  | 'RESERVATION_COMPLETED'
+  | 'RESERVATION_NO_SHOW';
 
 export interface IAdminReservationNotification {
   id: string;
@@ -210,6 +216,7 @@ export interface IAdminReservationNotification {
   retryCount: number;
   lastRetryAt: string | null;
   deliveryStatus: NotificationDeliveryStatus;
+  recipientRole: 'HOST' | 'CUSTOMER' | 'UNKNOWN';
 }
 
 export interface IAdminReservation {
@@ -234,6 +241,8 @@ export interface IAdminReservationStats {
   pendingCount: number;
   confirmedCount: number;
   editedCount: number;
+  completedCount: number;
+  noShowCount: number;
   totalCount: number;
 }
 

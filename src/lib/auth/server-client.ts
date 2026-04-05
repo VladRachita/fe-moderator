@@ -143,6 +143,19 @@ export const revokeTokens = async (request: NextRequest): Promise<string[]> => {
   return extractSetCookies(response);
 };
 
+export const revokeTokensByValue = async (refreshToken: string): Promise<void> => {
+  const { revocationEndpoint, clientId } = getAuthConfig();
+  try {
+    await fetch(revocationEndpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken, clientId }),
+    });
+  } catch {
+    // Best-effort revocation — failure must not mask the caller's error response
+  }
+};
+
 const resolveBackendBaseUrl = (): string => {
   const baseUrl = process.env.BACKEND_API_BASE_URL ?? 'http://localhost:8080';
   return baseUrl.replace(/\/+$/, '');
@@ -196,10 +209,26 @@ export const fetchUserIdentity = async (accessToken: string): Promise<IUserIdent
     roles: identityRoles,
     identityKey: payload.identityKey || undefined,
     needsPasswordChange: Boolean(payload.needsPasswordChange),
+    loginCodeRequired: Boolean(payload.loginCodeRequired),
     permissions: {
       canModerate: Boolean(payload.permissions?.canModerate),
       canViewAnalytics: Boolean(payload.permissions?.canViewAnalytics),
       canManageUsers: Boolean(payload.permissions?.canManageUsers),
     },
   };
+};
+
+export const verifyLoginCode = async (accessToken: string, code: string): Promise<boolean> => {
+  const backendBaseUrl = resolveBackendBaseUrl();
+  const response = await fetch(`${backendBaseUrl}/api/v1/auth/verify-login-code`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({ code }),
+  });
+  if (response.ok) return true;
+  if (response.status === 401) return false;
+  throw new Error(`Login code verification failed: ${response.status}`);
 };

@@ -54,6 +54,7 @@ function normalizeNotification(raw: Record<string, unknown>): IAdminReservationN
     retryCount: typeof raw.retryCount === 'number' ? raw.retryCount : 0,
     lastRetryAt: typeof raw.lastRetryAt === 'string' ? raw.lastRetryAt : null,
     deliveryStatus: normalizeDeliveryStatus(raw.deliveryStatus),
+    recipientRole: raw.recipientRole === 'HOST' || raw.recipientRole === 'CUSTOMER' ? raw.recipientRole : 'UNKNOWN',
   } as IAdminReservationNotification;
 }
 
@@ -113,6 +114,8 @@ export const listAdminReservations = async (
         pendingCount: typeof rawStats.pendingCount === 'number' ? rawStats.pendingCount : 0,
         confirmedCount: typeof rawStats.confirmedCount === 'number' ? rawStats.confirmedCount : 0,
         editedCount: typeof rawStats.editedCount === 'number' ? rawStats.editedCount : 0,
+        completedCount: typeof rawStats.completedCount === 'number' ? rawStats.completedCount : 0,
+        noShowCount: typeof rawStats.noShowCount === 'number' ? rawStats.noShowCount : 0,
         totalCount: typeof rawStats.totalCount === 'number' ? rawStats.totalCount : 0,
       },
     };

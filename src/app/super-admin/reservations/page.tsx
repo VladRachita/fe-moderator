@@ -74,6 +74,12 @@ const ReservationsPage: React.FC = () => {
               <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-800">
                 {reservationStats.editedCount} Edited
               </span>
+              <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-3 py-1 text-xs font-semibold text-purple-800">
+                {reservationStats.completedCount} Completed
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-800">
+                {reservationStats.noShowCount} No-Show
+              </span>
               <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-600">
                 {reservationStats.totalCount} Total
               </span>
@@ -97,7 +103,7 @@ const ReservationsPage: React.FC = () => {
       )}
 
       <div className="mt-6 flex gap-2 border-b border-gray-200">
-        {(['PENDING', 'CONFIRMED', 'EDITED'] as const).map((tab) => (
+        {(['PENDING', 'CONFIRMED', 'EDITED', 'COMPLETED', 'NO_SHOW'] as const).map((tab) => (
           <button
             key={tab}
             type="button"
@@ -112,7 +118,7 @@ const ReservationsPage: React.FC = () => {
               setExpandedReservationId(null);
             }}
           >
-            {tab.charAt(0) + tab.slice(1).toLowerCase()}
+            {tab === 'NO_SHOW' ? 'No-Show' : tab.charAt(0) + tab.slice(1).toLowerCase()}
           </button>
         ))}
       </div>
@@ -122,7 +128,7 @@ const ReservationsPage: React.FC = () => {
           <div className="py-12 text-center text-sm text-gray-500">Loading reservations&hellip;</div>
         ) : reservations.length === 0 ? (
           <div className="py-12 text-center text-sm text-gray-500">
-            No {reservationTab === 'EDITED' ? 'edited' : reservationTab.toLowerCase()} reservations found.
+            No {reservationTab === 'EDITED' ? 'edited' : reservationTab === 'NO_SHOW' ? 'no-show' : reservationTab.toLowerCase()} reservations found.
           </div>
         ) : (
           <div className="space-y-3">
@@ -195,6 +201,7 @@ const ReservationsPage: React.FC = () => {
                         <thead className="bg-gray-50">
                           <tr>
                             <th className="px-3 py-2 text-left font-semibold text-gray-700">Type</th>
+                            <th className="px-3 py-2 text-left font-semibold text-gray-700">Recipient</th>
                             <th className="px-3 py-2 text-left font-semibold text-gray-700">Status</th>
                             <th className="px-3 py-2 text-left font-semibold text-gray-700">Retries</th>
                             <th className="px-3 py-2 text-left font-semibold text-gray-700">Created</th>
@@ -208,6 +215,19 @@ const ReservationsPage: React.FC = () => {
                             <tr key={notif.id}>
                               <td className="px-3 py-2 text-gray-900">
                                 {notif.type.replace(/^RESERVATION_/, '').replace(/_/g, ' ')}
+                              </td>
+                              <td className="px-3 py-2">
+                                <span
+                                  className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${
+                                    notif.recipientRole === 'HOST'
+                                      ? 'bg-blue-100 text-blue-800'
+                                      : notif.recipientRole === 'CUSTOMER'
+                                        ? 'bg-green-100 text-green-800'
+                                        : 'bg-gray-100 text-gray-600'
+                                  }`}
+                                >
+                                  {notif.recipientRole}
+                                </span>
                               </td>
                               <td className="px-3 py-2">
                                 <span

@@ -88,6 +88,7 @@ const normalizeProvisionResponse = (
     role,
     temporaryPassword,
     requiresPasswordChange,
+    hasLoginCode: Boolean(response.hasLoginCode),
   };
 };
 
@@ -139,6 +140,7 @@ const normalizeStaffList = (payload: unknown): IStaffUserSummary[] => {
           typeof entry.lastPasswordRotation === 'string' ? entry.lastPasswordRotation : undefined,
         createdAt:
           typeof entry.createdAt === 'string' ? entry.createdAt : new Date(0).toISOString(),
+        hasLoginCode: Boolean(entry.hasLoginCode),
       };
     })
     .filter((value): value is IStaffUserSummary => Boolean(value));
@@ -159,6 +161,34 @@ export const listAdminUsers = async (): Promise<IStaffUserSummary[]> => {
       throw new AdminUserListError(message, status, code, issues);
     }
     throw new AdminUserListError('Failed to load staff', 500);
+  }
+};
+
+export const setLoginCode = async (userId: string, loginCode: string): Promise<void> => {
+  try {
+    await apiClient.put(`/api/v1/admin/users/${userId}/login-code`, { loginCode });
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      const responseData = (error.response.data ?? {}) as Record<string, unknown>;
+      const message =
+        typeof responseData.message === 'string' ? responseData.message : 'Failed to set login code';
+      throw new AdminUserProvisionError(message, error.response.status);
+    }
+    throw new AdminUserProvisionError('Failed to set login code', 500);
+  }
+};
+
+export const removeLoginCode = async (userId: string): Promise<void> => {
+  try {
+    await apiClient.delete(`/api/v1/admin/users/${userId}/login-code`);
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      const responseData = (error.response.data ?? {}) as Record<string, unknown>;
+      const message =
+        typeof responseData.message === 'string' ? responseData.message : 'Failed to remove login code';
+      throw new AdminUserProvisionError(message, error.response.status);
+    }
+    throw new AdminUserProvisionError('Failed to remove login code', 500);
   }
 };
 
