@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   getAllToggles,
   updateToggle,
@@ -8,6 +8,9 @@ import {
 } from '@/services/category-toggle-service';
 import type { CategoryToggle } from '@/services/category-toggle-service';
 import { useSession } from '@/lib/auth/use-session';
+
+const RATE_LIMIT_MAX = 3;
+const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
 
 const CATEGORY_LABELS: Record<string, string> = {
   RESTAURANT: 'Restaurants',
@@ -28,6 +31,12 @@ const CategoriesPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [pendingKeys, setPendingKeys] = useState<Set<string>>(new Set());
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // Confirmation dialog state
+  const [confirmToggle, setConfirmToggle] = useState<CategoryToggle | null>(null);
+
+  // Rate-limit tracking: key -> array of timestamps
+  const rateLimitMap = useRef<Map<string, number[]>>(new Map());
 
   const toggleKey = (t: CategoryToggle) =>
     t.subcategory ? `${t.category}:${t.subcategory}` : t.category;
@@ -61,12 +70,47 @@ const CategoriesPage: React.FC = () => {
     return () => clearTimeout(timer);
   }, [successMessage]);
 
+  // Check if a toggle key is rate-limited
+  const isRateLimited = (key: string): boolean => {
+    const now = Date.now();
+    const timestamps = rateLimitMap.current.get(key) ?? [];
+    const recent = timestamps.filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
+    rateLimitMap.current.set(key, recent);
+    return recent.length >= RATE_LIMIT_MAX;
+  };
+
+  // Record a toggle action for rate-limiting
+  const recordToggleAction = (key: string) => {
+    const now = Date.now();
+    const timestamps = rateLimitMap.current.get(key) ?? [];
+    const recent = timestamps.filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
+    recent.push(now);
+    rateLimitMap.current.set(key, recent);
+  };
+
+  // Open confirmation dialog (with rate-limit check)
+  const requestToggle = (toggle: CategoryToggle) => {
+    const key = toggleKey(toggle);
+    if (pendingKeys.has(key)) return;
+
+    if (isRateLimited(key)) {
+      setError(
+        `Too many changes for "${formatSubcategoryLabel(toggle.subcategory ?? toggle.category)}". Please wait a moment before trying again.`,
+      );
+      return;
+    }
+
+    setConfirmToggle(toggle);
+  };
+
+  // Execute the confirmed toggle
   const handleToggle = async (toggle: CategoryToggle) => {
     const key = toggleKey(toggle);
 
     // Prevent concurrent updates on the same toggle
     if (pendingKeys.has(key)) return;
 
+    recordToggleAction(key);
     setPendingKeys((prev) => new Set([...prev, key]));
     setError(null);
     setSuccessMessage(null);
@@ -181,7 +225,7 @@ const CategoriesPage: React.FC = () => {
                   <ToggleSwitch
                     enabled={catEnabled}
                     loading={pendingKeys.has(categoryName)}
-                    onToggle={() => catToggle && handleToggle(catToggle)}
+                    onToggle={() => catToggle && requestToggle(catToggle)}
                   />
                 </div>
 
@@ -215,7 +259,7 @@ const CategoriesPage: React.FC = () => {
                             enabled={sub.enabled}
                             loading={pendingKeys.has(key)}
                             disabled={!catEnabled}
-                            onToggle={() => handleToggle(sub)}
+                            onToggle={() => requestToggle(sub)}
                           />
                         </div>
                       );
@@ -227,6 +271,18 @@ const CategoriesPage: React.FC = () => {
           })}
         </div>
       )}
+
+      {/* Confirmation dialog */}
+      {confirmToggle && (
+        <ConfirmDialog
+          toggle={confirmToggle}
+          onConfirm={() => {
+            handleToggle(confirmToggle);
+            setConfirmToggle(null);
+          }}
+          onCancel={() => setConfirmToggle(null)}
+        />
+      )}
     </div>
   );
 };
@@ -237,6 +293,59 @@ function formatSubcategoryLabel(raw: string): string {
     .toLowerCase()
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
+
+/* ─── Confirmation Dialog ─── */
+
+interface ConfirmDialogProps {
+  toggle: CategoryToggle;
+  onConfirm: () => void;
+  onCancel: () => void;
+}
+
+const ConfirmDialog: React.FC<ConfirmDialogProps> = ({ toggle, onConfirm, onCancel }) => {
+  const label = formatSubcategoryLabel(toggle.subcategory ?? toggle.category);
+  const action = toggle.enabled ? 'disable' : 'enable';
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+      onClick={onCancel}
+    >
+      <div
+        className="w-full max-w-sm rounded-xl border border-gray-200 bg-white p-6 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 className="text-lg font-semibold text-gray-900">Confirm change</h3>
+        <p className="mt-2 text-sm text-gray-600">
+          Are you sure you want to <span className="font-medium">{action}</span>{' '}
+          <span className="font-medium">{label}</span>?
+        </p>
+        <div className="mt-5 flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            className={`rounded-lg px-4 py-2 text-sm font-medium text-white ${
+              action === 'enable'
+                ? 'bg-blue-600 hover:bg-blue-700'
+                : 'bg-red-600 hover:bg-red-700'
+            }`}
+          >
+            {action === 'enable' ? 'Enable' : 'Disable'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ─── Toggle Switch ─── */
 
 interface ToggleSwitchProps {
   enabled: boolean;

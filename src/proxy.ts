@@ -38,7 +38,7 @@ const applySecurityHeaders = (response: NextResponse) => {
 export const proxy = (request: NextRequest) => {
     const { pathname } = request.nextUrl;
 
-    if (protectedPaths.some((path) => pathname.startsWith(path))) {
+    if (protectedPaths.some((path) => pathname === path || pathname.startsWith(`${path}/`))) {
         const sessionCookie = request.cookies.get(COOKIE_NAMES.accessToken);
         if (!sessionCookie) {
             const loginUrl = new URL('/login', request.url);
