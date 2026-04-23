@@ -207,6 +207,7 @@ const ReservationsPage: React.FC = () => {
                             <th className="px-3 py-2 text-left font-semibold text-gray-700">Created</th>
                             <th className="px-3 py-2 text-left font-semibold text-gray-700">Delivered</th>
                             <th className="px-3 py-2 text-left font-semibold text-gray-700">Acknowledged</th>
+                            <th className="px-3 py-2 text-left font-semibold text-gray-700">Read</th>
                             <th className="px-3 py-2 text-left font-semibold text-gray-700">Last Retry</th>
                           </tr>
                         </thead>
@@ -232,14 +233,25 @@ const ReservationsPage: React.FC = () => {
                               <td className="px-3 py-2">
                                 <span
                                   className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${
-                                    notif.deliveryStatus === 'ACKNOWLEDGED'
-                                      ? 'bg-green-100 text-green-800'
-                                      : notif.deliveryStatus === 'DELIVERED'
-                                        ? 'bg-blue-100 text-blue-800'
-                                        : notif.deliveryStatus === 'FAILED'
-                                          ? 'bg-red-100 text-red-800'
-                                          : 'bg-amber-100 text-amber-800'
+                                    notif.deliveryStatus === 'READ'
+                                      ? 'bg-emerald-200 text-emerald-900'
+                                      : notif.deliveryStatus === 'ACKNOWLEDGED'
+                                        ? 'bg-green-100 text-green-800'
+                                        : notif.deliveryStatus === 'DELIVERED'
+                                          ? 'bg-blue-100 text-blue-800'
+                                          : notif.deliveryStatus === 'FAILED'
+                                            ? 'bg-red-100 text-red-800'
+                                            : 'bg-amber-100 text-amber-800'
                                   }`}
+                                  title={
+                                    notif.deliveryStatus === 'READ'
+                                      ? 'Recipient tapped the push or opened the in-app inbox'
+                                      : notif.deliveryStatus === 'ACKNOWLEDGED'
+                                        ? 'Device accepted the FCM payload'
+                                        : notif.deliveryStatus === 'DELIVERED'
+                                          ? 'Push reached the device'
+                                          : undefined
+                                  }
                                 >
                                   {notif.deliveryStatus}
                                 </span>
@@ -256,6 +268,11 @@ const ReservationsPage: React.FC = () => {
                               <td className="px-3 py-2 text-gray-700">
                                 {notif.acknowledgedAt
                                   ? new Date(notif.acknowledgedAt).toLocaleString()
+                                  : '\u2014'}
+                              </td>
+                              <td className="px-3 py-2 text-gray-700">
+                                {notif.readAt
+                                  ? new Date(notif.readAt).toLocaleString()
                                   : '\u2014'}
                               </td>
                               <td className="px-3 py-2 text-gray-700">

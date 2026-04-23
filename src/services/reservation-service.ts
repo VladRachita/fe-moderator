@@ -25,7 +25,7 @@ const VALID_RESERVATION_STATUSES = new Set<string>([
 ]);
 
 const VALID_DELIVERY_STATUSES = new Set<string>([
-  'ACKNOWLEDGED', 'DELIVERED', 'PENDING', 'FAILED',
+  'READ', 'ACKNOWLEDGED', 'DELIVERED', 'PENDING', 'FAILED',
 ]);
 
 function normalizeDeliveryStatus(raw: unknown): NotificationDeliveryStatus {
@@ -51,6 +51,7 @@ function normalizeNotification(raw: Record<string, unknown>): IAdminReservationN
     createdAt: typeof raw.createdAt === 'string' ? raw.createdAt : '',
     deliveredAt: typeof raw.deliveredAt === 'string' ? raw.deliveredAt : null,
     acknowledgedAt: typeof raw.acknowledgedAt === 'string' ? raw.acknowledgedAt : null,
+    readAt: typeof raw.readAt === 'string' ? raw.readAt : null,
     retryCount: typeof raw.retryCount === 'number' ? raw.retryCount : 0,
     lastRetryAt: typeof raw.lastRetryAt === 'string' ? raw.lastRetryAt : null,
     deliveryStatus: normalizeDeliveryStatus(raw.deliveryStatus),

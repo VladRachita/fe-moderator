@@ -193,7 +193,7 @@ export interface IReportsPage {
 // ==================== ADMIN RESERVATION MONITORING ====================
 
 export type ReservationStatus = 'PENDING' | 'CONFIRMED' | 'REJECTED' | 'CANCELLED' | 'COMPLETED' | 'NO_SHOW';
-export type NotificationDeliveryStatus = 'ACKNOWLEDGED' | 'DELIVERED' | 'PENDING' | 'FAILED';
+export type NotificationDeliveryStatus = 'READ' | 'ACKNOWLEDGED' | 'DELIVERED' | 'PENDING' | 'FAILED';
 export type NotificationType =
   | 'RESERVATION_CREATED'
   | 'RESERVATION_CONFIRMED'
@@ -213,6 +213,7 @@ export interface IAdminReservationNotification {
   createdAt: string;
   deliveredAt: string | null;
   acknowledgedAt: string | null;
+  readAt: string | null;
   retryCount: number;
   lastRetryAt: string | null;
   deliveryStatus: NotificationDeliveryStatus;

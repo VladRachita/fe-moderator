@@ -8,6 +8,8 @@ import {
 } from '@/services/category-toggle-service';
 import type { CategoryToggle } from '@/services/category-toggle-service';
 import { useSession } from '@/lib/auth/use-session';
+import ToggleSwitch from '@/components/admin/ToggleSwitch';
+import ConfirmDialog from '@/components/admin/ConfirmDialog';
 
 const RATE_LIMIT_MAX = 3;
 const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
@@ -275,7 +277,21 @@ const CategoriesPage: React.FC = () => {
       {/* Confirmation dialog */}
       {confirmToggle && (
         <ConfirmDialog
-          toggle={confirmToggle}
+          title="Confirm change"
+          message={(() => {
+            const label = formatSubcategoryLabel(
+              confirmToggle.subcategory ?? confirmToggle.category,
+            );
+            const action = confirmToggle.enabled ? 'disable' : 'enable';
+            return (
+              <>
+                Are you sure you want to <span className="font-medium">{action}</span>{' '}
+                <span className="font-medium">{label}</span>?
+              </>
+            );
+          })()}
+          confirmLabel={confirmToggle.enabled ? 'Disable' : 'Enable'}
+          destructive={confirmToggle.enabled}
           onConfirm={() => {
             handleToggle(confirmToggle);
             setConfirmToggle(null);
@@ -293,94 +309,5 @@ function formatSubcategoryLabel(raw: string): string {
     .toLowerCase()
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
-
-/* ─── Confirmation Dialog ─── */
-
-interface ConfirmDialogProps {
-  toggle: CategoryToggle;
-  onConfirm: () => void;
-  onCancel: () => void;
-}
-
-const ConfirmDialog: React.FC<ConfirmDialogProps> = ({ toggle, onConfirm, onCancel }) => {
-  const label = formatSubcategoryLabel(toggle.subcategory ?? toggle.category);
-  const action = toggle.enabled ? 'disable' : 'enable';
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
-      onClick={onCancel}
-    >
-      <div
-        className="w-full max-w-sm rounded-xl border border-gray-200 bg-white p-6 shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h3 className="text-lg font-semibold text-gray-900">Confirm change</h3>
-        <p className="mt-2 text-sm text-gray-600">
-          Are you sure you want to <span className="font-medium">{action}</span>{' '}
-          <span className="font-medium">{label}</span>?
-        </p>
-        <div className="mt-5 flex justify-end gap-3">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={onConfirm}
-            className={`rounded-lg px-4 py-2 text-sm font-medium text-white ${
-              action === 'enable'
-                ? 'bg-blue-600 hover:bg-blue-700'
-                : 'bg-red-600 hover:bg-red-700'
-            }`}
-          >
-            {action === 'enable' ? 'Enable' : 'Disable'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-/* ─── Toggle Switch ─── */
-
-interface ToggleSwitchProps {
-  enabled: boolean;
-  loading?: boolean;
-  disabled?: boolean;
-  onToggle: () => void;
-}
-
-const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
-  enabled,
-  loading = false,
-  disabled = false,
-  onToggle,
-}) => (
-  <button
-    type="button"
-    role="switch"
-    aria-checked={enabled}
-    disabled={disabled || loading}
-    onClick={onToggle}
-    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${
-      enabled ? 'bg-blue-600' : 'bg-gray-200'
-    }`}
-  >
-    <span
-      className={`pointer-events-none inline-block size-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-        enabled ? 'translate-x-5' : 'translate-x-0'
-      }`}
-    />
-    {loading && (
-      <span className="absolute inset-0 flex items-center justify-center">
-        <span className="size-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
-      </span>
-    )}
-  </button>
-);
 
 export default CategoriesPage;
