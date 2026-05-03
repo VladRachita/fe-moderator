@@ -145,7 +145,7 @@ const LoginFormContent: React.FC = () => {
 
   return (
     <>
-      <h1 className="mb-6 text-center text-3xl font-bold">Moderator Login</h1>
+      <h1 className="mb-6 text-center text-3xl font-bold">Sign in</h1>
       <p className="mb-6 text-center text-sm text-gray-600">
         Sign in with your work email address or username alongside your password to access the dashboards.
       </p>
@@ -270,7 +270,7 @@ const LoginFormContent: React.FC = () => {
 
 const LoginFormFallback: React.FC = () => (
   <>
-    <h1 className="mb-6 text-center text-3xl font-bold">Moderator Login</h1>
+    <h1 className="mb-6 text-center text-3xl font-bold">Sign in</h1>
     <p className="mb-6 text-center text-sm text-gray-600">
       Sign in with your work email address or username alongside your password to access the dashboards.
     </p>

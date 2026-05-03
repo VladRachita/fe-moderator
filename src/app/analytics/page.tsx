@@ -57,6 +57,15 @@ const AnalyticsPage: React.FC = () => {
         router.replace('/dashboard');
         return;
       }
+      // HOSTS-ON-WEB V1 — defence-in-depth bounce: a HOST landing on
+      // /analytics goes to /host instead of the generic auth-failed page.
+      if (
+        session.permissions.canManageBusinesses &&
+        session.userType === 'HOST'
+      ) {
+        router.replace('/host');
+        return;
+      }
       router.replace('/login?error=authentication_failed');
     }
   }, [isSessionLoading, session, router]);

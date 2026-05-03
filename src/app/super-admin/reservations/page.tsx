@@ -196,8 +196,8 @@ const ReservationsPage: React.FC = () => {
                   </div>
 
                   {isExpanded && reservation.notifications.length > 0 && (
-                    <div className="mt-4 rounded border border-gray-200 bg-white">
-                      <table className="min-w-full divide-y divide-gray-200 text-xs">
+                    <div className="mt-4 overflow-x-auto rounded border border-gray-200 bg-white">
+                      <table className="min-w-full divide-y divide-gray-200 text-xs whitespace-nowrap">
                         <thead className="bg-gray-50">
                           <tr>
                             <th className="px-3 py-2 text-left font-semibold text-gray-700">Type</th>

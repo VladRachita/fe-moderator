@@ -3,7 +3,7 @@
 import { usePathname } from 'next/navigation';
 import Header from '@/components/ui/Header';
 
-const HEADER_VISIBLE_ROUTES = ['/dashboard', '/analytics', '/super-admin'];
+const HEADER_VISIBLE_ROUTES = ['/dashboard', '/analytics', '/super-admin', '/host'];
 
 const HeaderWrapper: React.FC = () => {
     const pathname = usePathname();

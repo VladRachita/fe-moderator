@@ -68,9 +68,27 @@ const extractSetCookies = (response: Response): string[] => {
   return header ? [header] : [];
 };
 
+const ALLOWED_RESPONSE_HEADERS = new Set<string>([
+  'content-type',
+  'content-length',
+  'content-encoding',
+  'cache-control',
+  'etag',
+  'last-modified',
+  'location',
+  'vary',
+  'x-ratelimit-remaining',
+  'x-ratelimit-reset',
+  'x-session-refreshed',
+]);
+
 const toNextResponse = async (backendResponse: Response) => {
-  const headers = new Headers(backendResponse.headers);
-  headers.delete('set-cookie');
+  const headers = new Headers();
+  backendResponse.headers.forEach((value, key) => {
+    if (ALLOWED_RESPONSE_HEADERS.has(key.toLowerCase())) {
+      headers.set(key, value);
+    }
+  });
   const body = backendResponse.body ?? null;
   const response = new NextResponse(body, {
     status: backendResponse.status,

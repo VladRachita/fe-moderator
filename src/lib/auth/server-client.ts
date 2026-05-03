@@ -201,12 +201,19 @@ export const fetchUserIdentity = async (accessToken: string): Promise<IUserIdent
   const identityRoles = Array.isArray(payload.roles)
     ? payload.roles.filter((role): role is string => typeof role === 'string' && role.length > 0)
     : undefined;
+  const canManageBusinesses = Boolean(payload.permissions?.canManageBusinesses);
+  const isPlatformUser =
+    Boolean(payload.permissions?.canModerate) ||
+    Boolean(payload.permissions?.canViewAnalytics) ||
+    Boolean(payload.permissions?.canManageUsers);
   return {
     authenticated: resolvedAuthenticated,
     userId: payload.userId || undefined,
     clientId: payload.clientId || undefined,
     role: payload.role || undefined,
     roles: identityRoles,
+    userType:
+      payload.userType ?? (canManageBusinesses && !isPlatformUser ? 'HOST' : 'PLATFORM'),
     identityKey: payload.identityKey || undefined,
     needsPasswordChange: Boolean(payload.needsPasswordChange),
     loginCodeRequired: Boolean(payload.loginCodeRequired),
@@ -214,6 +221,7 @@ export const fetchUserIdentity = async (accessToken: string): Promise<IUserIdent
       canModerate: Boolean(payload.permissions?.canModerate),
       canViewAnalytics: Boolean(payload.permissions?.canViewAnalytics),
       canManageUsers: Boolean(payload.permissions?.canManageUsers),
+      canManageBusinesses,
     },
   };
 };

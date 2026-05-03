@@ -80,6 +80,8 @@ export interface IPasswordRotationResult {
   rotatedAt: string;
 }
 
+export type UserType = 'PLATFORM' | 'HOST';
+
 export interface IUserSession {
   authenticated: boolean;
   subject?: string;
@@ -88,6 +90,7 @@ export interface IUserSession {
   userId?: string;
   clientId?: string;
   role?: string;
+  userType?: UserType;
   identityKey?: string;
   error?: string;
   scopes: string[];
@@ -97,6 +100,7 @@ export interface IUserSession {
     canModerate: boolean;
     canViewAnalytics: boolean;
     canManageUsers: boolean;
+    canManageBusinesses: boolean;
   };
 }
 
@@ -106,6 +110,7 @@ export interface IUserIdentity {
   clientId?: string;
   role?: string;
   roles?: string[];
+  userType?: UserType;
   identityKey?: string;
   needsPasswordChange?: boolean;
   loginCodeRequired?: boolean;
@@ -113,6 +118,7 @@ export interface IUserIdentity {
     canModerate: boolean;
     canViewAnalytics: boolean;
     canManageUsers: boolean;
+    canManageBusinesses: boolean;
   };
 }
 
@@ -253,4 +259,120 @@ export interface IAdminReservationsPage {
   size: number;
   hasNext: boolean;
   stats: IAdminReservationStats;
+}
+
+// ==================== HOST SELF-SERVICE RESERVATION TYPES (V2) ====================
+
+/**
+ * Restaurant-specific reservation details (party size, seating, dietary).
+ * Backend: ReservationRestaurantDetailsDto on RESTAURANT-typed reservations.
+ */
+export interface IHostRestaurantReservationDetails {
+  partySize: number | null;
+  seatingPreference: string | null;
+  dietaryRestrictions: string | null;
+  occasion: string | null;
+  childrenCount: number | null;
+}
+
+/**
+ * Single reservation as exposed via `GET /api/v1/business/reservations` /
+ * `/{id}` / `?updatedSince=` to the HOST's own dashboard.
+ *
+ * Mirrors backend `ReservationResponseDto`. Customer PII (`contactName`,
+ * `contactPhone`, `contactEmail`) is intentional — the host has a legitimate
+ * business need to contact their customer.
+ */
+export interface IHostReservation {
+  id: string;
+  customerId: string;
+  hostId: string;
+  businessId: string | null;
+  businessName: string;
+  businessType: BusinessCategory;
+  status: ReservationStatus;
+  reservationDate: string;          // ISO LocalDate (YYYY-MM-DD)
+  reservationTime: string;          // ISO LocalTime (HH:mm:ss)
+  estimatedDurationMinutes: number | null;
+  contactName: string;
+  contactPhone: string;
+  contactEmail: string;
+  specialRequests: string | null;
+  restaurantDetails: IHostRestaurantReservationDetails | null;
+  reviewedAt: string | null;
+  reviewNotes: string | null;
+  cancelledAt: string | null;
+  cancellationReason: string | null;
+  couponId: string | null;
+  couponTitle: string | null;
+  createdAt: string;
+  updatedAt: string | null;         // null on freshly-created rows; backend uses COALESCE for polling
+  isEdited: boolean;
+  editedAt: string | null;
+  maxCapacity: number | null;
+}
+
+export interface IHostReservationStats {
+  pendingCount: number;
+  confirmedCount: number;
+  completedCount: number;
+  cancelledCount: number;
+  noShowCount: number;
+  todayCount: number;
+}
+
+/**
+ * Response from `GET /api/v1/business/reservations` (with or without
+ * `?updatedSince=`). When `updatedSince` is set, `totalElements = result.size`
+ * and `totalPages = 1` (V1.5 follow-up #4 documented hasNext semantics).
+ *
+ * §V2 — `serverTime` is captured at request entry; web polling clients
+ * compute the next `updatedSince` as `serverTime - 5000ms` (C3 safety
+ * margin, matching `HostReservationsDeltaPageDto.pollSafetyMarginMs`).
+ */
+export interface IHostReservationsPage {
+  reservations: IHostReservation[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  stats: IHostReservationStats;
+  serverTime: string;               // ISO Instant
+}
+
+/**
+ * §V2 — single audit-trail entry from `GET /api/v1/business/reservations/{id}/history`.
+ *
+ * `changedByRole` is computed server-side by comparing the actor's UUID to
+ * the reservation's hostId / customerId — the raw UUID is intentionally
+ * NOT exposed to the client (GDPR posture, see backend DTO KDoc).
+ */
+export type ChangedByRole = 'HOST' | 'CUSTOMER' | 'SYSTEM';
+
+export interface IReservationHistoryEntry {
+  id: string;
+  previousStatus: ReservationStatus | null;
+  newStatus: ReservationStatus;
+  changedByRole: ChangedByRole;
+  changedAt: string;                // ISO Instant
+  reason: string | null;
+}
+
+export interface IReservationHistoryResponse {
+  reservationId: string;
+  entries: IReservationHistoryEntry[];
+}
+
+/**
+ * §V2 review (approve/reject) request body.
+ */
+export type ReservationDecision = 'APPROVE' | 'REJECT';
+
+export interface IReviewReservationRequest {
+  decision: ReservationDecision;
+  reviewNotes?: string;
+}
+
+export interface ICancelReservationRequest {
+  reason: string;
 }

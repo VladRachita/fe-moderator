@@ -10,7 +10,7 @@ Create an `.env.local` with the following values before running the app:
 AUTH_SERVER_BASE_URL=http://localhost:8080
 AUTH_CLIENT_ID=frontend-client
 AUTH_COOKIE_SECRET=dev-only-change-me
-AUTH_SCOPE=moderation:read moderation:write analytics:read admin:users:read admin:users:write
+AUTH_SCOPE=moderation:read moderation:write analytics:read admin:users:read admin:users:write app.host
 BACKEND_API_BASE_URL=http://localhost:8080
 ```
 

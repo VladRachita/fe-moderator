@@ -22,14 +22,14 @@ export interface TokenResponse {
 const cookieBaseOptions = {
   httpOnly: true,
   secure: isProduction,
-  sameSite: 'lax' as const,
+  sameSite: 'strict' as const,
   path: '/',
 };
 
 export const csrfCookieOptions = {
   httpOnly: false,
   secure: isProduction,
-  sameSite: 'lax' as const,
+  sameSite: 'strict' as const,
   path: '/',
 };
 
@@ -107,7 +107,7 @@ export const clearSessionCookies = (response: NextResponse) => {
     maxAge: 0,
     httpOnly: true,
     secure: true,
-    sameSite: 'lax',
+    sameSite: 'strict',
     path: '/',
   });
 };

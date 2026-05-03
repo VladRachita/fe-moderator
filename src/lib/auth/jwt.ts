@@ -122,18 +122,22 @@ const deriveRoles = (payload: JwtPayload, identity: UserIdentity | undefined): s
     .filter((role) => role.length > 0);
 };
 
+export type UserType = 'PLATFORM' | 'HOST';
+
 export interface UserIdentity {
   authenticated?: boolean;
   userId?: string;
   clientId?: string;
   role?: string;
   roles?: string[];
+  userType?: UserType;
   identityKey?: string;
   needsPasswordChange?: boolean;
   permissions?: {
     canModerate: boolean;
     canViewAnalytics: boolean;
     canManageUsers: boolean;
+    canManageBusinesses: boolean;
   };
 }
 
@@ -145,6 +149,7 @@ export interface SessionDetails {
   userId?: string;
   clientId?: string;
   role?: string;
+  userType?: UserType;
   scopes: string[];
   roles: string[];
   identityKey?: string;
@@ -153,6 +158,7 @@ export interface SessionDetails {
     canModerate: boolean;
     canViewAnalytics: boolean;
     canManageUsers: boolean;
+    canManageBusinesses: boolean;
   };
 }
 
@@ -160,10 +166,12 @@ const ANONYMOUS: SessionDetails = {
   authenticated: false,
   scopes: [],
   roles: [],
+  userType: 'PLATFORM',
   permissions: {
     canModerate: false,
     canViewAnalytics: false,
     canManageUsers: false,
+    canManageBusinesses: false,
   },
   needsPasswordChange: false,
 };
@@ -203,9 +211,13 @@ export const mapSessionDetails = (
   const hasSuperAdminRole =
     normalizedRoles.some((role) => role.includes('SUPER_ADMIN')) ||
     normalizeRole(identity?.role ?? '').includes('SUPER_ADMIN');
+  const hasHostRole =
+    normalizedRoles.some((role) => role === 'HOST') ||
+    normalizeRole(identity?.role ?? '') === 'HOST';
 
   const hasModerationWrite = hasScope(scopes, 'moderation:write');
   const hasAnalyticsScope = hasScopePrefix(scopes, 'analytics:');
+  const hasHostScope = hasScope(scopes, 'app.host');
 
   const identityPermissions = identity?.permissions;
 
@@ -213,10 +225,23 @@ export const mapSessionDetails = (
   const derivedAnalyticsCapable = hasAnalystRole || hasSuperAdminRole || (!hasRoleData && hasAnalyticsScope);
   const derivedCanModerate =
     hasModeratorRole || hasSuperAdminRole || (!hasRoleData && hasModerationWrite && !derivedAnalyticsCapable);
+  // HOST detection — backed by the `app.host` scope, which the backend
+  // grants only to UsersTypes.HOST (see ScopePolicyService.determineApplicationScopes).
+  // The `HOST` role claim is a defence-in-depth secondary signal.
+  const derivedCanManageBusinesses = hasHostScope || hasHostRole;
 
   const canManageUsers = identityPermissions?.canManageUsers ?? derivedCanManageUsers;
   const canViewAnalytics = identityPermissions?.canViewAnalytics ?? derivedAnalyticsCapable;
   const canModerate = identityPermissions?.canModerate ?? derivedCanModerate;
+  const canManageBusinesses = identityPermissions?.canManageBusinesses ?? derivedCanManageBusinesses;
+
+  // userType discriminator — defence-in-depth axis on top of the permission
+  // booleans. A user is HOST iff they have `app.host` AND no platform
+  // permission. Backend DB constraint guarantees a user has either
+  // platform_role OR user_type, never both, so the check is mutually exclusive.
+  const isPlatformUser = canModerate || canViewAnalytics || canManageUsers;
+  const userType: UserType =
+    identity?.userType ?? (canManageBusinesses && !isPlatformUser ? 'HOST' : 'PLATFORM');
 
   const primaryRole =
     (identity?.roles && identity.roles.length > 0 && identity.roles[0]) ||
@@ -231,6 +256,7 @@ export const mapSessionDetails = (
     userId: identity?.userId ?? (typeof payload.sub === 'string' ? payload.sub : undefined),
     clientId: identity?.clientId,
     role: primaryRole ? normalizeRole(primaryRole) : identity?.role,
+    userType,
     scopes,
     roles: normalizedRoles,
     identityKey: computeIdentityKey(identity, payload),
@@ -239,6 +265,7 @@ export const mapSessionDetails = (
       canModerate,
       canViewAnalytics,
       canManageUsers,
+      canManageBusinesses,
     },
   };
 };

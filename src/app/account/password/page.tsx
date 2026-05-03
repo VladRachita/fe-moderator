@@ -22,6 +22,9 @@ const resolveDestination = (details: IUserSession | null | undefined): string =>
   if (details.permissions.canManageUsers) {
     return '/super-admin';
   }
+  if (details.permissions.canManageBusinesses) {
+    return '/host';
+  }
   return '/login';
 };
 

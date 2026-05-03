@@ -165,7 +165,8 @@ export const POST = async (request: NextRequest) => {
     const hasAuthorizedView =
       sessionDetails.permissions.canModerate ||
       sessionDetails.permissions.canViewAnalytics ||
-      sessionDetails.permissions.canManageUsers;
+      sessionDetails.permissions.canManageUsers ||
+      sessionDetails.permissions.canManageBusinesses;
     if (!hasAuthorizedView) {
       const response = NextResponse.json({ error: 'authorization_failed' }, { status: 403 });
       response.headers.set('Cache-Control', 'no-store');
@@ -212,6 +213,15 @@ export const POST = async (request: NextRequest) => {
       sessionDetails.permissions.canManageUsers
     ) {
       defaultRedirect = '/super-admin';
+    } else if (
+      // HOST users (HOSTS-ON-WEB V1) — last branch so platform staff
+      // (who never have canManageBusinesses=true) match earlier branches first.
+      !sessionDetails.permissions.canModerate &&
+      !sessionDetails.permissions.canViewAnalytics &&
+      !sessionDetails.permissions.canManageUsers &&
+      sessionDetails.permissions.canManageBusinesses
+    ) {
+      defaultRedirect = '/host';
     }
     const redirectDestination = mustRotatePassword
       ? '/account/password'

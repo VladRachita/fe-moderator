@@ -26,6 +26,12 @@ const Header: React.FC = () => {
   const isSuperAdmin = Boolean(
     session?.authenticated && !session?.needsPasswordChange && session.permissions.canManageUsers,
   );
+  const isHost = Boolean(
+    session?.authenticated &&
+      !session?.needsPasswordChange &&
+      session.permissions.canManageBusinesses &&
+      session.userType === 'HOST',
+  );
 
   return (
     <header className="flex items-center justify-between whitespace-nowrap border-b border-gray-200 px-6 py-4">
@@ -70,6 +76,19 @@ const Header: React.FC = () => {
                 }`}
               >
                 Platform Users
+              </span>
+            </Link>
+          )}
+          {isHost && (
+            <Link href="/host">
+              <span
+                className={`relative text-sm font-medium ${
+                  isClient && pathname.startsWith('/host')
+                    ? "font-bold text-black after:absolute after:bottom-[-4px] after:left-0 after:h-0.5 after:w-full after:bg-black after:content-['']"
+                    : 'text-gray-500 hover:text-black'
+                }`}
+              >
+                Dashboard
               </span>
             </Link>
           )}

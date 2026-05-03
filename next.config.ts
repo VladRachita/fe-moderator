@@ -4,6 +4,7 @@ const mediaCdnHost = process.env.MEDIA_CDN_HOST;
 
 const nextConfig: NextConfig = {
   output: 'standalone',
+  poweredByHeader: false,
   async headers() {
     return [
       {

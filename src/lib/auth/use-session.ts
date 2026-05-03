@@ -17,11 +17,13 @@ const createLoggedOutSession = (reason: LogoutReason = 'logout'): IUserSession =
   authenticated: false,
   scopes: [],
   roles: [],
+  userType: 'PLATFORM',
   needsPasswordChange: false,
   permissions: {
     canModerate: false,
     canViewAnalytics: false,
     canManageUsers: false,
+    canManageBusinesses: false,
   },
   error: reason,
 });

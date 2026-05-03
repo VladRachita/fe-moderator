@@ -128,6 +128,17 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
         router.replace('/analytics');
         return;
       }
+      // HOSTS-ON-WEB V1 — defence-in-depth bounce: a HOST landing on
+      // /super-admin (e.g. via stale `returnTo` after the V1 fix re-enabled
+      // their session) goes to /host instead of the generic
+      // authorization_failed error page.
+      if (
+        session.permissions.canManageBusinesses &&
+        session.userType === 'HOST'
+      ) {
+        router.replace('/host');
+        return;
+      }
       router.replace('/login?error=authorization_failed');
     }
   }, [isSessionLoading, session, router, pathname]);
@@ -218,7 +229,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
         </nav>
       </aside>
       <main className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-3xl p-8">{children}</div>
+        <div className="mx-auto max-w-7xl p-8">{children}</div>
       </main>
     </div>
   );
