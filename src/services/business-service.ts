@@ -61,12 +61,13 @@ const normalizeApplicationStatus = (value: unknown): ApplicationStatus => {
   return 'PENDING';
 };
 
-const normalizeBusinessCategory = (value: unknown): BusinessCategory => {
+export const normalizeBusinessCategory = (value: unknown): BusinessCategory => {
   if (typeof value !== 'string') {
     return 'RESTAURANT';
   }
   const normalized = value.trim().toUpperCase();
-  if (normalized === 'HOTEL') return 'HOTEL';
+  if (normalized === 'SERVICE') return 'SERVICE';
+  if (normalized === 'STAY') return 'STAY';
   return 'RESTAURANT';
 };
 
