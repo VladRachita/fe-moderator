@@ -13,7 +13,12 @@ import {
 } from '@/lib/auth/server-client';
 import { issueCsrfCookie, setSessionCookies, getAccessTokenValue } from '@/lib/auth/tokens';
 import { decodeJwtPayload, mapSessionDetails } from '@/lib/auth/jwt';
-import { checkLoginRateLimits, resolveClientIp } from '@/lib/auth/rate-limit';
+import {
+  peekLoginRateLimits,
+  recordLoginFailure,
+  resetLoginAccountCounter,
+  resolveClientIp,
+} from '@/lib/auth/rate-limit';
 import { constantTimeEqual } from '@/lib/auth/crypto';
 
 const MAX_IDENTIFIER_LENGTH = 254; // RFC 5321 max email length
@@ -96,11 +101,15 @@ export const POST = async (request: NextRequest) => {
   }
 
   const clientIp = resolveClientIp(request);
-  const rateLimit = checkLoginRateLimits(clientIp, email);
+  // Peek both gates BEFORE the backend call. Failures-only counting happens
+  // on the catch block below; success path resets the per-account counter.
+  // 429 body deliberately omits the scope (ip vs account) so the response
+  // does not confirm account existence (email-enumeration oracle).
+  const rateLimit = peekLoginRateLimits(clientIp, email);
   if (!rateLimit.allowed) {
     const retryAfterSeconds = Math.ceil(rateLimit.retryAfterMs / 1000);
     return NextResponse.json(
-      { error: 'rate_limit_exceeded' },
+      { error: 'rate_limit_exceeded', retryAfterSeconds },
       { status: 429, headers: { 'Retry-After': String(retryAfterSeconds) } },
     );
   }
@@ -236,8 +245,18 @@ export const POST = async (request: NextRequest) => {
     response.headers.set('Cache-Control', 'no-store');
     setCookies.forEach((cookie) => response.headers.append('set-cookie', cookie));
 
+    // Success — drop the BFF per-account counter so a legitimate user who
+    // mistyped a few times before getting it right is not penalised on their
+    // next login. Per-IP counter is intentionally preserved (shared NAT may
+    // host credential-stuffing traffic).
+    resetLoginAccountCounter(email);
     return response;
   } catch (error) {
+    // Wrong-password path — `authorizeUser` rejects on bad credentials and
+    // any other auth failure that surfaces from the backend. Record before
+    // constructing the response so the counter increments even if the
+    // upstream client has disconnected.
+    recordLoginFailure(clientIp, email);
     console.error('Login flow failed:', error);
     const response = NextResponse.json({ error: 'authentication_failed' }, { status: 401 });
     response.headers.set('Cache-Control', 'no-store');

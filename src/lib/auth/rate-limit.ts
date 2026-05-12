@@ -1,8 +1,17 @@
 /**
  * In-memory sliding-window rate limiter.
  *
- * Resets on Vercel cold starts — acceptable for MVP.
- * For durable limiting, swap to Upstash + @upstash/ratelimit.
+ * Best-effort BFF lockout. The Map is per-process; it resets on container
+ * restart and is sharded per replica. Backend AuthorizationService
+ * (videoSanity AuthorizationService.kt:85-87) owns the authoritative
+ * DB-backed lockout (5 failures / 5 min, persisted to user_security
+ * .failed_attempts + locked_until). The BFF gate here exists to surface a
+ * precise UX message and to shed obvious abuse before it reaches the backend;
+ * it is NOT a security boundary. Do NOT add a per-email mutex here — it would
+ * not change the security envelope and would halve login throughput per
+ * account under contention.
+ *
+ * For durable limiting across replicas, swap to Upstash + @upstash/ratelimit.
  */
 
 interface RateLimitEntry {
@@ -11,12 +20,19 @@ interface RateLimitEntry {
 
 const store = new Map<string, RateLimitEntry>();
 
-const DEFAULT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
-const DEFAULT_MAX_ATTEMPTS = 10;
-const ACCOUNT_WINDOW_MS = 30 * 60 * 1000; // 30 minutes
-const ACCOUNT_MAX_ATTEMPTS = 5;
 const CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
-const MAX_WINDOW_MS = Math.max(DEFAULT_WINDOW_MS, ACCOUNT_WINDOW_MS);
+
+// Failures-only thresholds for the login flow.
+// Per-IP: 30 failures / 15 min — high enough for shared NAT offices, low
+// enough to catch obvious credential-stuffing scanners.
+// Per-account: 5 failures / 5 min — mirrors backend AuthorizationService.kt
+// MAX_FAILED_ATTEMPTS=5 and LOCKOUT_DURATION=Duration.ofMinutes(5) so the BFF
+// UX message can quote the wait time precisely without drifting from backend.
+const IP_WINDOW_MS = 15 * 60 * 1000;
+const IP_MAX_FAILURES = 30;
+const ACCOUNT_WINDOW_MS = 5 * 60 * 1000;
+const ACCOUNT_MAX_FAILURES = 5;
+const MAX_WINDOW_MS = Math.max(IP_WINDOW_MS, ACCOUNT_WINDOW_MS);
 
 let lastCleanup = Date.now();
 
@@ -41,23 +57,12 @@ export interface RateLimitResult {
   retryAfterMs: number;
 }
 
-export const checkRateLimit = (
-  identifier: string,
-  maxAttempts = DEFAULT_MAX_ATTEMPTS,
-  windowMs = DEFAULT_WINDOW_MS,
+const buildResult = (
+  entry: RateLimitEntry,
+  now: number,
+  maxAttempts: number,
+  windowMs: number,
 ): RateLimitResult => {
-  const now = Date.now();
-  cleanup();
-
-  const cutoff = now - windowMs;
-  let entry = store.get(identifier);
-  if (!entry) {
-    entry = { timestamps: [] };
-    store.set(identifier, entry);
-  }
-
-  entry.timestamps = entry.timestamps.filter((ts) => ts > cutoff);
-
   if (entry.timestamps.length >= maxAttempts) {
     const oldestInWindow = entry.timestamps[0] ?? now;
     const retryAfterMs = oldestInWindow + windowMs - now;
@@ -67,8 +72,6 @@ export const checkRateLimit = (
       retryAfterMs: Math.max(retryAfterMs, 0),
     };
   }
-
-  entry.timestamps.push(now);
   return {
     allowed: true,
     remaining: maxAttempts - entry.timestamps.length,
@@ -76,25 +79,108 @@ export const checkRateLimit = (
   };
 };
 
+const getOrCreateTrimmedEntry = (key: string, windowMs: number, now: number): RateLimitEntry => {
+  cleanup();
+  let entry = store.get(key);
+  if (!entry) {
+    entry = { timestamps: [] };
+    store.set(key, entry);
+  }
+  const cutoff = now - windowMs;
+  entry.timestamps = entry.timestamps.filter((ts) => ts > cutoff);
+  return entry;
+};
+
 /**
- * Checks both per-IP and per-account rate limits.
- * Returns blocked if either limit is exceeded.
- * Per-account limiting prevents credential stuffing across many IPs.
+ * Read-only check — returns the result for the current state without
+ * pushing a timestamp. Use this to peek the gate before performing work
+ * that may or may not result in a recorded failure.
  */
-export const checkLoginRateLimits = (
+export const peekRateLimit = (
+  identifier: string,
+  maxAttempts: number,
+  windowMs: number,
+): RateLimitResult => {
+  const now = Date.now();
+  const entry = getOrCreateTrimmedEntry(identifier, windowMs, now);
+  return buildResult(entry, now, maxAttempts, windowMs);
+};
+
+/**
+ * Push a failure timestamp. Always pushes regardless of whether the gate is
+ * already over the limit (keeps cleanup honest and the oldest-in-window math
+ * accurate). NOTE: BFF lockout is best-effort. The success path resets the
+ * per-account counter via resetCounter(), which may forget pre-success
+ * failures during concurrent traffic. This is intentional — backend
+ * AuthorizationService (DB-backed, 5/5min) is the authoritative lockout.
+ */
+export const recordFailure = (
+  identifier: string,
+  maxAttempts: number,
+  windowMs: number,
+): RateLimitResult => {
+  const now = Date.now();
+  const entry = getOrCreateTrimmedEntry(identifier, windowMs, now);
+  entry.timestamps.push(now);
+  return buildResult(entry, now, maxAttempts, windowMs);
+};
+
+/**
+ * Drop the counter entirely for a key. Called on the success path. NOTE: BFF
+ * lockout is best-effort (see recordFailure doc). Backend remains
+ * authoritative.
+ */
+export const resetCounter = (identifier: string): void => {
+  store.delete(identifier);
+};
+
+/**
+ * Peek both gates without recording. Returns the failing result if either is
+ * exceeded; the IP gate is checked first. Does NOT distinguish which gate
+ * tripped in the public API surface — the route handler returns a generic
+ * 429 body that does not reveal scope, closing the email-enumeration oracle.
+ */
+export const peekLoginRateLimits = (
   clientIp: string,
   identifier: string,
 ): RateLimitResult => {
-  const ipResult = checkRateLimit(`login:${clientIp}`);
+  const ipResult = peekRateLimit(`login:${clientIp}`, IP_MAX_FAILURES, IP_WINDOW_MS);
   if (!ipResult.allowed) {
     return ipResult;
   }
-  const accountResult = checkRateLimit(
+  return peekRateLimit(
     `login-account:${identifier.toLowerCase()}`,
-    ACCOUNT_MAX_ATTEMPTS,
+    ACCOUNT_MAX_FAILURES,
     ACCOUNT_WINDOW_MS,
   );
-  return accountResult;
+};
+
+/**
+ * Record a failure against BOTH the per-IP and per-account counters. Call
+ * from the login route's catch block after authorizeUser rejects (i.e.
+ * exactly the wrong-password path). Synchronous: writes to in-memory Map and
+ * does NOT await — the counter increments even if the upstream client has
+ * disconnected mid-request, because Next.js continues running the handler
+ * to completion on client abort unless request.signal is checked.
+ */
+export const recordLoginFailure = (clientIp: string, identifier: string): void => {
+  recordFailure(`login:${clientIp}`, IP_MAX_FAILURES, IP_WINDOW_MS);
+  recordFailure(
+    `login-account:${identifier.toLowerCase()}`,
+    ACCOUNT_MAX_FAILURES,
+    ACCOUNT_WINDOW_MS,
+  );
+};
+
+/**
+ * Drop the per-account counter on a successful login. We do NOT reset the
+ * per-IP counter — a single legitimate success from a shared NAT must not
+ * wipe failures accumulated by other tenants on the same egress IP, since
+ * those failures are the credential-stuffing signal the per-IP gate exists
+ * to capture.
+ */
+export const resetLoginAccountCounter = (identifier: string): void => {
+  resetCounter(`login-account:${identifier.toLowerCase()}`);
 };
 
 export const resolveClientIp = (request: Request): string => {
