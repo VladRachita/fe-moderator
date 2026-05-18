@@ -122,7 +122,7 @@ export interface IUserIdentity {
   };
 }
 
-export type BusinessCategory = 'RESTAURANT' | 'HOTEL';
+export type BusinessCategory = 'RESTAURANT' | 'SERVICE' | 'STAY';
 export type PriceRange = '$' | '$$' | '$$$' | '$$$$';
 export type ApplicationStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 

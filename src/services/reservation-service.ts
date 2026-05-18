@@ -1,5 +1,6 @@
 import axios from 'axios';
 import apiClient from './api-client';
+import { normalizeBusinessCategory } from './business-service';
 import type {
   IAdminReservationsPage,
   IAdminReservation,
@@ -71,7 +72,7 @@ function normalizeReservation(raw: Record<string, unknown>): IAdminReservation {
     customerId: typeof raw.customerId === 'string' ? raw.customerId : '',
     hostId: typeof raw.hostId === 'string' ? raw.hostId : '',
     businessName: typeof raw.businessName === 'string' ? raw.businessName : '',
-    businessType: typeof raw.businessType === 'string' ? (raw.businessType as IAdminReservation['businessType']) : 'RESTAURANT',
+    businessType: normalizeBusinessCategory(raw.businessType),
     status: normalizeReservationStatus(raw.status),
     reservationDate: typeof raw.reservationDate === 'string' ? raw.reservationDate : '',
     reservationTime: typeof raw.reservationTime === 'string' ? raw.reservationTime : '',

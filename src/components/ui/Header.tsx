@@ -33,10 +33,20 @@ const Header: React.FC = () => {
       session.userType === 'HOST',
   );
 
+  // Priority mirrors the login-route default-redirect ladder at
+  // /api/auth/login/route.ts so a super-admin (canModerate AND
+  // canManageUsers) lands on /dashboard just like after a fresh login.
+  const logoHref =
+    isModerator   ? '/dashboard'
+    : isAnalyst     ? '/analytics'
+    : isSuperAdmin  ? '/super-admin'
+    : isHost        ? '/host'
+    : '/';
+
   return (
     <header className="flex items-center justify-between whitespace-nowrap border-b border-gray-200 px-6 py-4">
       <div className="flex items-center gap-8">
-        <Link href="/">
+        <Link href={logoHref}>
           <h1 className="text-xl font-bold">Video Review Playlist</h1>
         </Link>
         <nav className="flex items-center gap-6">

@@ -57,6 +57,24 @@ const applySecurityHeaders = (response: NextResponse, csp: string) => {
 };
 
 export const proxy = (request: NextRequest) => {
+    // fe-moderator declares ZERO Server Actions (grep for `"use server"`,
+    // `<form action={...}>`, `useFormState`, `useActionState`, and
+    // `useFormStatus` across src/ returns no matches). Any inbound POST
+    // carrying a `Next-Action` header is therefore an external bot/scanner
+    // probe (real Next.js action IDs are 40-char hex hashes; production
+    // logs show probes posting trivially-invalid values like "1" or "x").
+    // Reject at the proxy short-circuit so Next.js never logs
+    // "Failed to find Server Action" on every probe. Runs BEFORE the
+    // protected-path check so a probe to /dashboard is 400'd rather than
+    // redirected to /login (which would also pollute logs and waste cycles).
+    //
+    // ROLLBACK CONTRACT: if a future iteration introduces a Server Action,
+    // this block must be deleted. The companion test in proxy.test.ts pins
+    // the contract so accidental Server Action additions fail loudly.
+    if (request.method === 'POST' && request.headers.get('next-action')) {
+        return new NextResponse(null, { status: 400 });
+    }
+
     const { pathname } = request.nextUrl;
 
     if (protectedPaths.some((path) => pathname === path || pathname.startsWith(`${path}/`))) {

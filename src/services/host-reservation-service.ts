@@ -47,6 +47,7 @@
 
 import axios from 'axios';
 import apiClient from './api-client';
+import { normalizeBusinessCategory } from './business-service';
 import type {
   ChangedByRole,
   ICancelReservationRequest,
@@ -154,10 +155,7 @@ const normalizeReservation = (raw: Record<string, unknown>): IHostReservation =>
   hostId: typeof raw.hostId === 'string' ? raw.hostId : '',
   businessId: typeof raw.businessId === 'string' ? raw.businessId : null,
   businessName: typeof raw.businessName === 'string' ? raw.businessName : '',
-  businessType:
-    raw.businessType === 'RESTAURANT' || raw.businessType === 'HOTEL'
-      ? raw.businessType
-      : 'RESTAURANT',
+  businessType: normalizeBusinessCategory(raw.businessType),
   status: normalizeStatus(raw.status),
   reservationDate: typeof raw.reservationDate === 'string' ? raw.reservationDate : '',
   reservationTime: typeof raw.reservationTime === 'string' ? raw.reservationTime : '',

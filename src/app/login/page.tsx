@@ -13,7 +13,11 @@ const errorMessages: Record<string, string> = {
   refresh_failed: 'Your session has expired. Please sign in again.',
   session_expired: 'Session expired. Log in to continue.',
   state_mismatch: 'Security check failed. Please try again.',
-  rate_limit_exceeded: 'Too many login attempts. Please wait a few minutes and try again.',
+  // Fallback copy used only when the 429 body lacks retryAfterSeconds.
+  // The router-side handler formats a precise wait time via formatRateLimit
+  // below. Copy must NOT confirm account existence (e.g., no "account
+  // locked" wording) — same message regardless of which gate tripped.
+  rate_limit_exceeded: 'Too many failed attempts. Please wait a few minutes and try again.',
   invalid_input: 'Invalid input. Check your email and password length.',
   login_code_required: 'A login code is required for your account. Enter your code and try again.',
   invalid_code: 'Invalid login code. Check the code and try again.',
@@ -60,13 +64,28 @@ const LoginFormContent: React.FC = () => {
     });
 
     if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
+      const data = (await response.json().catch(() => ({}))) as {
+        error?: unknown;
+        retryAfterSeconds?: unknown;
+      };
       const errorKey = typeof data.error === 'string' ? data.error : 'authentication_failed';
-      return { ok: false, errorKey } as const;
+      const retryAfterSeconds =
+        typeof data.retryAfterSeconds === 'number' ? data.retryAfterSeconds : undefined;
+      return { ok: false, errorKey, retryAfterSeconds } as const;
     }
 
     const data = (await response.json()) as { redirect?: string };
     return { ok: true, redirect: data.redirect ?? '/dashboard' } as const;
+  };
+
+  // Format the rate-limit error with a precise wait-time. Generic copy —
+  // must NOT confirm account existence; same message regardless of which
+  // gate (IP or account) tripped. Per security review.
+  const formatRateLimit = (retryAfterSeconds?: number) => {
+    const mins = retryAfterSeconds
+      ? Math.max(1, Math.ceil(retryAfterSeconds / 60))
+      : 5;
+    return `Too many failed attempts. Please wait ${mins} minute${mins === 1 ? '' : 's'} and try again.`;
   };
 
   const handleLoginSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -95,6 +114,8 @@ const LoginFormContent: React.FC = () => {
         setShowCodeModal(true);
         setCodeError(null);
         setLoginCode('');
+      } else if (result.errorKey === 'rate_limit_exceeded') {
+        setFormError(formatRateLimit(result.retryAfterSeconds));
       } else {
         setFormError(errorMessages[result.errorKey] ?? errorMessages.default);
       }
@@ -128,7 +149,11 @@ const LoginFormContent: React.FC = () => {
         // Credentials issue or rate limit — close modal, show on main form
         setShowCodeModal(false);
         setLoginCode('');
-        setFormError(errorMessages[result.errorKey] ?? errorMessages.default);
+        if (result.errorKey === 'rate_limit_exceeded') {
+          setFormError(formatRateLimit(result.retryAfterSeconds));
+        } else {
+          setFormError(errorMessages[result.errorKey] ?? errorMessages.default);
+        }
       }
     } catch {
       setCodeError(errorMessages.default);
