@@ -78,6 +78,18 @@ const AUDIT_PAGE_CARDS: AuditPageCard[] = [
     href: '/super-admin/audit/reservations',
     accent: 'bg-rose-50 text-rose-700',
   },
+  {
+    label: 'Paused HOSTs',
+    description: 'HOSTs not accepting reservations right now — contact them to check in.',
+    href: '/super-admin/audit/paused-hosts',
+    accent: 'bg-orange-50 text-orange-700',
+  },
+  {
+    label: 'Coupons',
+    description: 'HOST coupon engagement — top creators and inactive HOSTs to follow up with.',
+    href: '/super-admin/audit/coupons',
+    accent: 'bg-teal-50 text-teal-700',
+  },
 ];
 
 const AuditPage: React.FC = () => {

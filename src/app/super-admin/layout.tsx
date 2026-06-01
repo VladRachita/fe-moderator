@@ -12,6 +12,7 @@ const AUDIT_CHILDREN = [
   { label: 'Video Upload', href: '/super-admin/audit/video-upload' },
   { label: 'Registration', href: '/super-admin/audit/registration' },
   { label: 'Reservations', href: '/super-admin/audit/reservations' },
+  { label: 'Paused HOSTs', href: '/super-admin/audit/paused-hosts' },
 ];
 
 const NAV_ITEMS = [
