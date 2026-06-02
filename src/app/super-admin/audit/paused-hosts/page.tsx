@@ -31,22 +31,34 @@ const PausedHostsPageView: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('ALL');
 
-  const load = useCallback(async () => {
+  // §Stale-write guard — capture {days, page} at fetch start and no-op if
+  // either has changed before the response lands. Same shape as the sibling
+  // coupons/page.tsx loadActive/loadInactive guard.
+  const load = useCallback((): (() => void) | void => {
     if (!canView) return;
+    const requestedDays = days;
+    const requestedPage = page;
+    let cancelled = false;
     setLoading(true);
     setError(null);
-    try {
-      setResponse(await getPausedHosts(days, page, PAGE_SIZE));
-    } catch (err) {
-      setError(err instanceof AuditServiceError ? err.message : 'Failed to load paused hosts');
-    } finally {
-      setLoading(false);
-    }
+    void getPausedHosts(requestedDays, requestedPage, PAGE_SIZE)
+      .then((d) => {
+        if (cancelled || requestedDays !== days || requestedPage !== page) return;
+        setResponse(d);
+      })
+      .catch((err) => {
+        if (cancelled || requestedDays !== days || requestedPage !== page) return;
+        setError(err instanceof AuditServiceError ? err.message : 'Failed to load paused hosts');
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [canView, days, page]);
 
-  useEffect(() => {
-    void load();
-  }, [load, identityVersion]);
+  useEffect(() => load(), [load, identityVersion]);
 
   useEffect(() => {
     setPage(0);

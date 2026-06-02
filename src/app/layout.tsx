@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Spline_Sans } from 'next/font/google';
+import { Inter, Geist } from 'next/font/google';
 import { headers } from 'next/headers';
 import './globals.css';
 import HeaderWrapper from '@/components/ui/HeaderWrapper';
@@ -12,7 +12,8 @@ export const metadata: Metadata = {
   description: 'Internal moderation panel',
 };
 
-const splineSans = Spline_Sans({ subsets: ['latin'], display: 'optional' });
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' });
+const geist = Geist({ subsets: ['latin'], variable: '--font-geist', display: 'swap' });
 
 export default async function RootLayout({
   children,
@@ -39,9 +40,9 @@ export default async function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className={`${splineSans.className} bg-white text-black`} data-nonce={nonce}>
+      <body className={`${inter.variable} ${geist.variable} bg-background text-on-background antialiased min-h-screen flex flex-col font-body-md`} data-nonce={nonce}>
         <HeaderWrapper />
-        <main>{children}</main>
+        <main className="flex flex-col flex-grow">{children}</main>
       </body>
     </html>
   );
