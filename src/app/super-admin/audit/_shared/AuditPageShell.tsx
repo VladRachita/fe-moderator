@@ -23,7 +23,16 @@ interface AuditPageShellProps {
   isLoading: boolean;
   error: string | null;
   children: React.ReactNode;
+  /** Optional override of the day-range picker options. Defaults to 7/30/90/180/365. */
+  dayOptions?: number[];
 }
+
+const DEFAULT_DAY_OPTIONS = [7, 30, 90, 180, 365];
+
+const formatDayOption = (n: number): string => {
+  if (n === 365) return 'Last year';
+  return `Last ${n} day${n === 1 ? '' : 's'}`;
+};
 
 /** Shared header, day-window picker, refresh, and error banner for Phase 2 pages. */
 export const AuditPageShell: React.FC<AuditPageShellProps> = ({
@@ -35,49 +44,54 @@ export const AuditPageShell: React.FC<AuditPageShellProps> = ({
   isLoading,
   error,
   children,
-}) => (
-  <div className="space-y-6">
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      <div>
-        <Link
-          href="/super-admin/audit"
-          className="mb-1 inline-block text-xs font-medium text-blue-600 hover:underline"
-        >
-          &larr; Back to Audit Log
-        </Link>
-        <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
-        <p className="mt-1 text-sm text-gray-500">{subtitle}</p>
+  dayOptions,
+}) => {
+  const opts = dayOptions && dayOptions.length > 0 ? dayOptions : DEFAULT_DAY_OPTIONS;
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <Link
+            href="/super-admin/audit"
+            className="mb-1 inline-block text-xs font-medium text-blue-600 hover:underline"
+          >
+            &larr; Back to Audit Log
+          </Link>
+          <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
+          <p className="mt-1 text-sm text-gray-500">{subtitle}</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <select
+            value={String(days)}
+            onChange={(e) => onDaysChange(Number(e.target.value))}
+            disabled={opts.length === 1}
+            className="rounded border border-gray-300 px-2 py-1.5 text-sm disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500"
+          >
+            {opts.map((n) => (
+              <option key={n} value={String(n)}>
+                {formatDayOption(n)}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={onRefresh}
+            disabled={isLoading}
+            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+          >
+            {isLoading ? 'Loading...' : 'Refresh'}
+          </button>
+        </div>
       </div>
-      <div className="flex items-center gap-3">
-        <select
-          value={String(days)}
-          onChange={(e) => onDaysChange(Number(e.target.value))}
-          className="rounded border border-gray-300 px-2 py-1.5 text-sm"
-        >
-          <option value="7">Last 7 days</option>
-          <option value="30">Last 30 days</option>
-          <option value="90">Last 90 days</option>
-          <option value="180">Last 180 days</option>
-          <option value="365">Last year</option>
-        </select>
-        <button
-          type="button"
-          onClick={onRefresh}
-          disabled={isLoading}
-          className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:opacity-50"
-        >
-          {isLoading ? 'Loading...' : 'Refresh'}
-        </button>
-      </div>
+      {error && (
+        <div className="rounded-lg border border-red-500 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
+      {children}
     </div>
-    {error && (
-      <div className="rounded-lg border border-red-500 bg-red-50 px-4 py-3 text-sm text-red-700">
-        {error}
-      </div>
-    )}
-    {children}
-  </div>
-);
+  );
+};
 
 interface StatCardProps {
   label: string;
