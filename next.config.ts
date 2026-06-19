@@ -20,10 +20,6 @@ const nextConfig: NextConfig = {
   },
   images: {
     remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'lh3.googleusercontent.com',
-      },
       // Production: use CDN/MinIO hostname from env
       ...(mediaCdnHost
         ? [{ protocol: 'https' as const, hostname: mediaCdnHost }]

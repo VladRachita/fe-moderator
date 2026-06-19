@@ -10,6 +10,18 @@ validateEnv();
 export const metadata: Metadata = {
   title: 'Moderator Dashboard',
   description: 'Internal moderation panel',
+  // src/app/favicon.ico auto-covers legacy /favicon.ico; these add the sized
+  // PNGs, the iOS home-screen icon, and the PWA manifest from public/favicon_io.
+  icons: {
+    icon: [
+      { url: '/favicon_io/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
+      { url: '/favicon_io/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/favicon_io/android-chrome-192x192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/favicon_io/android-chrome-512x512.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: { url: '/favicon_io/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+  },
+  manifest: '/favicon_io/site.webmanifest',
 };
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' });

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 
 const Navbar: React.FC = () => {
   return (
@@ -7,10 +8,13 @@ const Navbar: React.FC = () => {
         {/* Brand */}
         <div className="flex items-center gap-2">
           <Link href="/">
-            <img
-              alt="Merg.ro"
-              className="h-10 object-contain"
-              src="https://lh3.googleusercontent.com/aida/AP1WRLtQLVTrWJY6wPukGMSzvJxWxBlqBEc4dqbkmWEUua-hnUFWDXBHORqRX0ol2mOuA1mljgWYM7WUDO41pbkBUqsboYFOsntStRE-Re_GTVyOFvlSAMSduGM54T_hFt-onupWxqoqtKIMCbXBC7OtJ6dB4Qk2XMHQYO8AULWLU-AtHoddOG0OlIiueogtkKb16YSAtYGe3e472Khb9X6PIClc0bJJNCUf3-JgWqOt0E59BPuK-sbP541r"
+            <Image
+              alt="Merg"
+              className="h-10 w-auto object-contain"
+              src="/logo.png"
+              width={40}
+              height={40}
+              priority
             />
           </Link>
         </div>
