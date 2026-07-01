@@ -1,0 +1,48 @@
+name: Security Audit — fe-moderator
+
+# Dependency-advisory + CSP-nonce guard gate.
+#
+# Added 2026-07-01 after the vite / postcss / launch-editor remediation:
+# nothing previously ran `npm audit` on push/PR, so a vulnerable transitive
+# bump could land unnoticed — exactly how vite@8.0.10 (server.fs.deny bypass,
+# HIGH) and next's nested postcss@8.4.31 (</style> XSS) slipped into the tree.
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  audit:
+    name: npm audit + CSP guard
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node (match Dockerfile node:22)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install (lockfile-exact)
+        run: npm ci
+
+      # Hard gate: fail on HIGH or CRITICAL. `high` is the non-flaky threshold
+      # — it would have caught the vite HIGH — without failing on every new
+      # dev-only MODERATE that never reaches the shipped `.next/standalone`
+      # runtime. Tighten to `moderate` for a stricter posture.
+      - name: npm audit (fail on high+)
+        run: npm audit --audit-level=high
+
+      # Full advisory list for visibility. Never fails the job.
+      - name: npm audit (full report, informational)
+        if: always()
+        run: npm audit || true
+
+      # Activate the previously-orphaned CSP nonce guard: a `force-static` page
+      # ships an empty CSP nonce and breaks script-src at runtime.
+      - name: CSP nonce compatibility guard
+        run: ./ci-checks/check-csp-compatibility.sh
